@@ -1,26 +1,36 @@
 frontend = {
-    "feats":["eto"],
+    "labels":{
+        "feats":["eto"],
 
-    "metrics_raster":[
-        "min", "max", "mean", "stddev",
-        "p10", "p25", "p50", "p75", "p90",
-        "max-min", "p95-05", "p75-25",
-        ],
+        "metrics_raster":[
+            "min", "max", "mean", "stddev",
+            "p10", "p25", "p50", "p75", "p90",
+            "max-min", "p95-05", "p75-25",
+            ],
 
-    "metrics_pgroup":[
-        "min", "max", "mean", "stddev",
-        "p10", "p25", "p50", "p75", "p90",
-        "max-min", "p95-05", "p75-25",
-        ],
+        "metrics_pgroup":[
+            "min", "max", "mean", "stddev",
+            "p10", "p25", "p50", "p75", "p90",
+            "max-min", "p95-05", "p75-25",
+            ],
 
-    "regions":[
-        "northeast", "southeast", "northplains", "southplains",
-        "northwest", "southwest", "midwest",
-        ],
+        "metrics_spread":[
+            "stddev", "max-min", "p95-05", "p75-25"
+            ],
 
-    "pgroups":[
-        "states", "counties",
-        ],
+        "regions":[
+            "northeast", "southeast", "northplains", "southplains",
+            "northwest", "southwest", "midwest",
+            ],
+
+        "pgroups":[
+            "states", "counties",
+            ],
+        },
+
+    ## number of valid timesteps per array should be consistent;
+    ## hard-code it so they don't always have to be sent.
+    "nvtimes":10,
 
     "norm_bounds":{
         "eto-anom":{
@@ -60,6 +70,154 @@ frontend = {
         },
     "norm_resolution":8192,
     "mask_val":65535,
+
+    "long_labels":{
+        "feats":{
+            "eto":"Reference Evapotranspiration",
+            "eto-anom":"Reference Evapotranspiration Anomaly",
+            },
+        "metrics":{
+            "min":"Minimum",
+            "max":"Maximum",
+            "mean":"Average",
+            "stddev":"Std Dev",
+            "p05":"5th Pctl",
+            "p10":"10th Pctl",
+            "p25":"25th Pctl",
+            "p50":"Median",
+            "p75":"75th Pctl",
+            "p90":"90th Pctl",
+            "p95":"95th Pctl",
+            "max-min":"Max-Min",
+            "p95-05":"95-5 Pctl",
+            "p90-10":"90-10 Pctl",
+            "p75-25":"75-25 Pctl"
+            },
+        "regions":{
+            "northeast":"Northeast",
+            "northwest":"Northwest",
+            "southeast":"Southeast",
+            "southwest":"Southwest",
+            "northplains":"Northern Plains",
+            "southplains":"Southern Plains",
+            "midwest":"Midwest"
+            },
+        "units":{
+            "eto":"Inches",
+            "eto-anom":"Deviation",
+            },
+        },
+
+    "short_labels":{
+        "feats":{
+            "eto":"ETo",
+            "eto-anom":"ETo Anom",
+            },
+        "metrics":{
+            "min":"Min",
+            "max":"Max",
+            "mean":"Avg",
+            "stddev":"Std",
+            "p05":"5 pct",
+            "p10":"10 pct",
+            "p25":"25 pct",
+            "p50":"Median",
+            "p75":"75 pct",
+            "p90":"90 pct",
+            "p95":"95 pct",
+            "max-min":"Max-Min",
+            "p95-05":"95-5 pct",
+            "p90-10":"90-10 pct",
+            "p75-25":"75-25 pct"
+            },
+        "regions":{
+            "northeast":"NE",
+            "northwest":"NW",
+            "southeast":"SE",
+            "southwest":"SW",
+            "northplains":"N Plains",
+            "southplains":"S Plains",
+            "midwest":"Midwest"
+            },
+        "units":{
+            "eto":"in",
+            "eto-anom":"dev",
+            },
+        },
+
+    "cmap_default_bounds":{
+        "eto-anom":{
+            "min":(-12., 12.),
+            "max":(-12., 12.),
+            "mean":(-12., 12.),
+            "mean":(-12., 12.),
+            "stddev":(0., 5.),
+            "p10":(-12., 12.),
+            "p25":(-12., 12.),
+            "p25":(-12., 12.),
+            "p50":(-12., 12.),
+            "p75":(-12., 12.),
+            "p90":(-12., 12.),
+            "max-min":(0., 18.),
+            "p95-05":(0., 18.),
+            "p90-10":(0., 18.),
+            "p75-25":(0., 18.),
+            },
+        "eto":{
+            "min":(-0.1, 0.75),
+            "max":(-0.1, 0.75),
+            "mean":(-0.1, 0.75),
+            "mean":(-0.1, 0.75),
+            "stddev":(0., 0.75),
+            "p10":(-0.1, 0.75),
+            "p25":(-0.1, 0.75),
+            "p25":(-0.1, 0.75),
+            "p50":(-0.1, 0.75),
+            "p75":(-0.1, 0.75),
+            "p90":(-0.1, 0.75),
+            "max-min":(0., 0.75),
+            "p95-05":(0., 0.75),
+            "p90-10":(0., 0.75),
+            "p75-25":(0., 0.75),
+            },
+        },
+
+    "cmap_default_name":{
+        "eto-anom":{
+            "min":"magma",
+            "max":"magma",
+            "mean":"magma",
+            "mean":"magma",
+            "stddev":"magma",
+            "p10":"magma",
+            "p25":"magma",
+            "p25":"magma",
+            "p50":"magma",
+            "p75":"magma",
+            "p90":"magma",
+            "max-min":"magma",
+            "p95-05":"magma",
+            "p90-10":"magma",
+            "p75-25":"magma",
+            },
+        "eto":{
+            "min":"magma",
+            "max":"magma",
+            "mean":"magma",
+            "mean":"magma",
+            "stddev":"magma",
+            "p10":"magma",
+            "p25":"magma",
+            "p25":"magma",
+            "p50":"magma",
+            "p75":"magma",
+            "p90":"magma",
+            "max-min":"magma",
+            "p95-05":"magma",
+            "p90-10":"magma",
+            "p75-25":"magma",
+            },
+        },
     }
 
 backend = {
@@ -73,5 +231,69 @@ backend = {
         "p90-10":["p90", "p10"],
         "p75-25":["p90", "p10"],
         },
+    "temporal_shard_spatial_shape":(96,96),
+    "temporal_chunk_spatial_shape":(6,6),
+    "keep_pgroup_properties":{
+        "states":["STATE"],
+        "counties":["NAME", "STATE"],
+        },
     }
 
+cmap = {
+    "options":[
+        "viridis",
+        "viridis_r",
+        #"gnuplot",
+        #"gist_rainbow",
+        "gist_earth",
+        "gist_earth_r",
+        "coolwarm",
+        "coolwarm_r",
+        #"cmr.chroma",
+        #"cmr.pride",
+        "cmr.rainforest",
+        "cmr.rainforest_r",
+        "nipy_spectral",
+        "magma",
+        "cividis",
+        "cividis_r",
+        "afmhot",
+        "BrBG",
+        "PuBuGn",
+        "bone",
+        "RdGy",
+        "RdGy_r",
+        "RdYlGn",
+        "RdYlGn_r",
+        ],
+    "resolution":256,
+    }
+
+custom_cmaps = {
+    "classic-9":{
+        "type":"listed",
+        "colors":[
+            "#cc0000", "#ff6600", "#ffa000", "#ebeb50", "#8ce48c",
+            "#00ff00", "#00c800", "#00af00", "#009600",
+            ],
+        },
+    "classic-5":{
+        "type":"listed",
+        "colors":[
+            "#cc0000", "#ffa000", "#8ce48c", "#00c800", "#009600",
+            ],
+        },
+    "beach-9":{
+        "type":"listed",
+        "colors":[
+            "#8c510a", "#bf812d", "#dfc27d", "#f6e8c3", "#f5f5f5",
+            "#c7eae5", "#80cdc1", "#35978f", "#01665e",
+            ],
+        },
+    "heat-5":{
+        "type":"listed",
+        "colors":[
+            "#d7191c", "#fdae61", "#ffffbf", "#abd9e9", "#2c7bb6",
+            ],
+        },
+    }

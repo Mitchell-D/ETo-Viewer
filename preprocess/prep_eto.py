@@ -85,56 +85,53 @@ def extract_region_eto(
     region, then statistically aggregating ensemble members per the config
     at the native (pixel) scale, and for each pgroup.
 
-    adds new arrays under the region sub-path data/eto/<date_string>:
+    adds new arrays under the region sub-path data/<date_string>:
 
-    - eto: (metric, vtime, lat, lon) < uint16 >
-    - vtime: (vtime,) < M8[ns] >
+    - eto_spatial: (metric, vtime, lat, lon) < uint16 >
+    - eto_temporal: (lat, lon, metric, vtime) < float16 >
 
-    and under each pgroup's sub-path: data/eto/<date_string>:
+    and under each pgroup's sub-path: data/<date_string>:
 
     - eto: (polygon, metric, vtime) < float16 >
     """
-    ds = nc.Dataset(nc_source_path, "r")
-    times = np.asarray([
-        date + timedelta(days=int(t)) for t in ds["time"][...]
-        ], dtype="M8[ns]")
-    eto_source = ds["ETo"][...] / 25.4 ## convert mm/day to in/day
-
-    pgroups = config.frontend["pgroups"]
-    rmetrics = config.frontend["metrics_raster"]
-    pmetrics = config.frontend["metrics_pgroup"]
+    pgroups = config.frontend["labels"]["pgroups"]
+    rmetrics = config.frontend["labels"]["metrics_raster"]
+    pmetrics = config.frontend["labels"]["metrics_pgroup"]
     norms = config.frontend["norm_bounds"]
     nmask = config.frontend["mask_val"]
     nres = config.frontend["norm_resolution"]
+    nvtimes = config.frontend["nvtimes"]
     dep_rules = config.backend["dependent_metrics"]
+    tsss = config.backend["temporal_shard_spatial_shape"]
+    tcss = config.backend["temporal_chunk_spatial_shape"]
+
+    ds = nc.Dataset(nc_source_path, "r")
+    eto_source = ds["ETo"][...] / 25.4 ## convert mm/day to in/day
+    assert eto_source.shape[0] == nvtimes
 
     zgrp = zarr.open(zarr_out_path, path=zarr_region_path, mode="a")
     m_valid = zgrp["m_valid"][...]
     ixmap = zgrp["index_map"][...][:,m_valid]
     pslices = zgrp.attrs["pgroup_slices"]
 
-    get_raster_spatial = True
-    get_raster_temporal = True
+    get_raster = True
     if not "data" in zgrp.keys():
         zgrp.create_group("data")
-    if "eto_spatial" in zgrp["data"].keys():
-        if overwrite_existing:
-            del zgrp["/data/eto_spatial"]
-        else:
-            get_raster_spatial = False
-    if "eto_temporal" in zgrp["data"].keys():
-        if overwrite_existing:
-            del zgrp["/data/eto_temporal"]
-        else:
-            get_raster_temporal = False
+    if dstr in zgrp["data"].keys():
+        if "eto_temporal" in zgrp[f"/data/{dstr}"].keys():
+            if overwrite_existing:
+                del zgrp[f"/data/{dstr}"]
+            else:
+                get_raster = False
 
     eto = np.full((*eto_source.shape[:2], *m_valid.shape), np.nan)
     eto[..., m_valid] = eto_source[..., ixmap[0], ixmap[1]]
     del eto_source
 
-    if get_raster_spatial:
+    if get_raster:
+        zgrp["data"].create_group(dstr)
         ## hard-code chunking each metric separately
-        zgrp["data"].create_array(
+        zgrp[f"/data/{dstr}"].create_array(
             "eto_spatial",
             shape=(len(rmetrics), eto.shape[0], *m_valid.shape),
             chunks=(1, eto.shape[0], *m_valid.shape),
@@ -144,7 +141,7 @@ def extract_region_eto(
 
         rdata = evaluate_feats(eto, rmetrics, dep_rules, axis=1)
 
-        zgrp["/data/eto_spatial"][...] = np.stack([
+        zgrp[f"/data/{dstr}/eto_spatial"][...] = np.stack([
             norm_uint16(
                 x=rdata[fk],
                 nmin=norms["eto"][fk][0],
@@ -155,19 +152,17 @@ def extract_region_eto(
             for fk in rmetrics
             ], axis=0)
 
-    if get_raster_temporal:
-        zgrp["data"].create_array(
+        zgrp[f"/data/{dstr}"].create_array(
             "eto_temporal",
             shape=(*m_valid.shape, len(pmetrics), eto.shape[0]),
-            chunks=(6, 6, len(pmetrics), eto.shape[0]),
-            shards=(*m_valid.shape, len(pmetrics), eto.shape[0]),
-            dtype=np.float32,
+            chunks=(*tcss, len(pmetrics), eto.shape[0]),
+            shards=(*tsss, len(pmetrics), eto.shape[0]),
+            dtype=np.float16,
             )
         pdata = evaluate_feats(eto, pmetrics, dep_rules, axis=1)
-        zgrp["/data/eto_temporal"][...] = np.stack([
-            pdata[fk] for fk in pmetrics
+        zgrp[f"/data/{dstr}/eto_temporal"][...] = np.stack([
+            pdata[fk].astype(np.float16) for fk in pmetrics
             ], axis=0).transpose(2,3,0,1)
-
 
     for pk in pgroups:
         if pk not in zgrp["pgroups"].keys():
@@ -176,23 +171,22 @@ def extract_region_eto(
 
         if "data" not in zgrp[f"/pgroups/{pk}"].keys():
             zgrp[f"/pgroups/{pk}"].create_group("data")
-        get_pgroup = True
-        if "eto" in zgrp[f"/pgroups/{pk}/data"].keys():
+        if dstr not in zgrp[f"/pgroups/{pk}/data"].keys():
+            zgrp[f"/pgroups/{pk}/data"].create_group(dstr)
+        if "eto" in zgrp[f"/pgroups/{pk}/data/{dstr}"].keys():
             if overwrite_existing:
-                del zgrp[f"/pgroups/{pk}/data/eto"]
+                del zgrp[f"/pgroups/{pk}/data/{dstr}/eto"]
             else:
-                get_pgroup = False
+                continue
 
         ps = pslices[pk]
-        if get_pgroup:
-            zgrp[f"/pgroups/{pk}/data"].create_array(
-                "eto",
-                shape=(len(pslices[pk]), len(pmetrics), times.size),
-                dtype=np.float16,
-                )
-
+        zgrp[f"/pgroups/{pk}/data/{dstr}"].create_array(
+            "eto",
+            shape=(len(pslices[pk]), len(pmetrics), nvtimes),
+            dtype=np.float16,
+            )
         frac = zgrp[f"/pgroups/{pk}/fracs"][...]
-        parr = np.full((len(ps), len(pmetrics), times.size), np.nan)
+        parr = np.full((len(ps), len(pmetrics), nvtimes), np.nan)
         assert len(ps) == frac.shape[0]
         for i in range(len(ps)):
             sy,sx = ps[i]
@@ -213,9 +207,11 @@ def extract_region_eto(
                 axis=0,
                 )
             ## result is (poly, metric, vtime)
-            parr[i] = np.stack([pdict[fk] for fk in pmetrics], axis=0)
-        zgrp[f"/pgroups/{pk}/data/eto"][...] = parr.astype(np.float16)
-
+            parr[i] = np.stack([
+                pdict[fk].astype(np.float16)
+                for fk in pmetrics
+                ], axis=0)
+        zgrp[f"/pgroups/{pk}/data/{dstr}/eto"][...] = parr
 
 if __name__=="__main__":
     source_dir = Path("/rhome/mdodson/ETo-Viewer/data/source")
@@ -250,7 +246,7 @@ if __name__=="__main__":
     ## extract and rescale raster data by region
     args = []
     zgrp_root = zarr.open(out_zarr_path, mode="a")
-    for r in config.frontend["regions"]:
+    for r in config.frontend["labels"]["regions"]:
         for d,sf in zip(get_dates, source_files):
             args.append({
                 "date":d,
@@ -259,6 +255,17 @@ if __name__=="__main__":
                 "zarr_region_path":f"/regions/{r}",
                 "overwrite_existing":overwrite_existing,
                 })
+
+    if "vtimes" not in zgrp_root.keys():
+        zgrp_root.create_group("vtimes")
+    for d in get_dates:
+        dstr = d.strftime("%Y%m%d")
+        if dstr not in zgrp_root["vtimes"].keys():
+            vtimes = np.asarray([
+                d + timedelta(days=i)
+                for i in range(config.frontend["nvtimes"])
+                ], dtype="M8[ns]")
+            zgrp_root["vtimes"].create_array(dstr, data=vtimes)
 
     with mp.Pool(nworkers) as pool:
         for a,_ in pool.imap_unordered(mp_extract_region_eto, args):

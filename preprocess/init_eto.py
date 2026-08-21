@@ -287,12 +287,12 @@ if __name__=="__main__":
 
     domains = {}
     pgroups = {}
-    for r in config.frontend["regions"]:
+    for r in config.frontend["labels"]["regions"]:
         d = vector_dir.joinpath(domain_template.format(domain=r))
         assert d.exists(), f"domain file doesn't exist: {d.as_posix()}"
         domains[r] = d
         pgroups[r] = {}
-        for pg in config.frontend["pgroups"]:
+        for pg in config.frontend["labels"]["pgroups"]:
             pgf = vector_dir.joinpath(f"{pg}_{r}.geojson")
             assert pgf.exists, f"pgroup file doesn't exist: {pgf.as_posix()}"
             pgroups[r][pg] = pgf
@@ -334,7 +334,7 @@ if __name__=="__main__":
         zgrp[f"/regions/{r}"].create_group("pgroups")
 
         pgslcs = {}
-        for pg in config.frontend["pgroups"]:
+        for pg in config.frontend["labels"]["pgroups"]:
             print(f"getting {r} {pg}")
             zgrp[f"/regions/{r}/pgroups"].create_group(pg)
             pgdf = gpd.read_file(pgroups[r][pg])
