@@ -192,30 +192,65 @@ def plot_geo_raster(data, lats, lons, shapes=None,
     plt.close()
     return
 
+def get_hist(x, nmin, nmax, resolution):
+    vals,counts = np.unique(
+        np.round(
+            np.clip((x[np.isfinite(x)]-nmin)/(nmax-nmin),0,1) \
+            * (resolution-1)
+            ).astype(np.uint64).ravel(),
+        return_counts=True,
+        )
+    coords = np.linspace(nmin, nmax, resolution)
+    c = np.asarray([coords[v] for v in vals])
+    return c,counts
+
+def plot_line(coords, vals, title, fig_path):
+    fig,ax = plt.subplots()
+    ax.plot(coords, vals, color="black", linewidth=2)
+    ax.set_title(title)
+    fig.savefig(fig_path)
+
 if __name__=="__main__":
     source_dir = Path("data/source/")
     source_path = source_dir.joinpath(
         "eto_forecast_gridmet_deg04_2026-08-17T00.nc")
     fig_dir = Path("data/figures")
-    fig_path = fig_dir.joinpath(source_path.stem + "_mean.png")
 
     ds = nc.Dataset(source_path, "r")
-    mean = np.average(ds["ETo"][0], axis=0)[::-1]
-    lat,lon = np.meshgrid(
-        ds["latitude"][...],
-        ds["longitude"][...],
-        indexing="ij",
-        )
-    plot_geo_raster(
-        data=mean,
-        lats=lat[::-1],
-        lons=lon[::-1],
-        shapes=None,
-        geo_bounds=None,
-        latlon_ticks=False,
-        out_path=fig_path,
-        cbar_ticks=False,
-        cmap=None,
-        show=False,
-        plot_spec={}
-        )
+
+    plot_mean = False
+    plot_mean_ixs = [0]
+
+    plot_hist = True
+    hres = 512
+
+    if plot_mean:
+        lat,lon = np.meshgrid(
+            ds["latitude"][...],
+            ds["longitude"][...],
+            indexing="ij",
+            )
+        for ix in plot_mean_ixs:
+            mean = np.average(ds["ETo"][0], axis=0)[::-1]
+            plot_geo_raster(
+                data=mean,
+                lats=lat[::-1],
+                lons=lon[::-1],
+                shapes=None,
+                geo_bounds=None,
+                latlon_ticks=False,
+                out_path=fig_dir.joinpath(source_path.stem+f"_mean_{ix}.png"),
+                cbar_ticks=False,
+                cmap=None,
+                show=False,
+                plot_spec={}
+                )
+
+    if plot_hist:
+        eto = ds["ETo"][...]
+        hmin = np.amin(eto)
+        hmax = np.amax(eto)
+        c,v = get_hist(eto, hmin, hmax, hres)
+        plot_line(c, v, "ETo Distribution", fig_dir.joinpath("eto_dist.png"))
+
+    print("finished")

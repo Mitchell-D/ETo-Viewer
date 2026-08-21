@@ -7,6 +7,12 @@ from pathlib import Path
 
 import config
 
+def norm_uint16(x, nmin, nmax, nres, mask_val):
+    m_valid = np.isfinite(x)
+    y = np.clip((x-nmin)/(nmax-nmin)*(nres-1), 0, nres-1)
+    y[~m_valid] = mask_val
+    return np.round(y).astype(np.uint16)
+
 def evaluate_feats(data, get_feats, dependency_rules, axis, weights=None):
     """ """
     deps = []
@@ -58,9 +64,11 @@ def evaluate_feats(data, get_feats, dependency_rules, axis, weights=None):
     for fk in derived_feats:
         if fk == "max-min":
             farrs[fk] = farrs["max"] - farrs["min"]
-        if fk == "p90-10":
+        elif fk == "p95-05":
+            farrs[fk] = farrs["p95"] - farrs["p05"]
+        elif fk == "p90-10":
             farrs[fk] = farrs["p90"] - farrs["p10"]
-        if fk == "p75-25":
+        elif fk == "p75-25":
             farrs[fk] = farrs["p75"] - farrs["p25"]
 
     return {fk:x for fk,x in farrs.items() if fk in get_feats}
@@ -96,6 +104,8 @@ def extract_region_eto(
     rmetrics = config.frontend["metrics_raster"]
     pmetrics = config.frontend["metrics_pgroup"]
     norms = config.frontend["norm_bounds"]
+    nmask = config.frontend["mask_val"]
+    nres = config.frontend["norm_resolution"]
     dep_rules = config.backend["dependent_metrics"]
 
     zgrp = zarr.open(zarr_out_path, path=zarr_region_path, mode="a")
@@ -103,36 +113,60 @@ def extract_region_eto(
     ixmap = zgrp["index_map"][...][:,m_valid]
     pslices = zgrp.attrs["pgroup_slices"]
 
-    get_raster = True
+    get_raster_spatial = True
+    get_raster_temporal = True
     if not "data" in zgrp.keys():
         zgrp.create_group("data")
-    if "eto" in zgrp["data"].keys():
+    if "eto_spatial" in zgrp["data"].keys():
         if overwrite_existing:
-            del zgrp["/data/eto"]
+            del zgrp["/data/eto_spatial"]
         else:
-            get_raster = False
+            get_raster_spatial = False
+    if "eto_temporal" in zgrp["data"].keys():
+        if overwrite_existing:
+            del zgrp["/data/eto_temporal"]
+        else:
+            get_raster_temporal = False
 
-    if get_raster:
+    eto = np.full((*eto_source.shape[:2], *m_valid.shape), np.nan)
+    eto[..., m_valid] = eto_source[..., ixmap[0], ixmap[1]]
+    del eto_source
+
+    if get_raster_spatial:
         ## hard-code chunking each metric separately
         zgrp["data"].create_array(
-            "eto",
-            shape=(len(rmetrics), eto_source.shape[0], *m_valid.shape),
-            chunks=(1, eto_source.shape[0], *m_valid.shape),
-            shards=(len(rmetrics), eto_source.shape[0], *m_valid.shape),
-            dtype=np.float32,
+            "eto_spatial",
+            shape=(len(rmetrics), eto.shape[0], *m_valid.shape),
+            chunks=(1, eto.shape[0], *m_valid.shape),
+            shards=(len(rmetrics), eto.shape[0], *m_valid.shape),
+            dtype=np.uint16,
             )
-        yixs,xixs = ixmap[0],ixmap[1]
-        eto = np.full((*eto_source.shape[:2], *m_valid.shape), np.nan)
-        eto[..., m_valid] = eto_source[..., yixs, xixs]
-        del eto_source
 
         rdata = evaluate_feats(eto, rmetrics, dep_rules, axis=1)
 
-        print("got raster")
-        zgrp["/data/eto"][...] = np.stack(
-            [rdata[fk] for fk in rmetrics],
-            axis=0,
+        zgrp["/data/eto_spatial"][...] = np.stack([
+            norm_uint16(
+                x=rdata[fk],
+                nmin=norms["eto"][fk][0],
+                nmax=norms["eto"][fk][1],
+                nres=nres,
+                mask_val=nmask,
+                )
+            for fk in rmetrics
+            ], axis=0)
+
+    if get_raster_temporal:
+        zgrp["data"].create_array(
+            "eto_temporal",
+            shape=(*m_valid.shape, len(pmetrics), eto.shape[0]),
+            chunks=(6, 6, len(pmetrics), eto.shape[0]),
+            shards=(*m_valid.shape, len(pmetrics), eto.shape[0]),
+            dtype=np.float32,
             )
+        pdata = evaluate_feats(eto, pmetrics, dep_rules, axis=1)
+        zgrp["/data/eto_temporal"][...] = np.stack([
+            pdata[fk] for fk in pmetrics
+            ], axis=0).transpose(2,3,0,1)
 
 
     for pk in pgroups:
@@ -180,7 +214,6 @@ def extract_region_eto(
                 )
             ## result is (poly, metric, vtime)
             parr[i] = np.stack([pdict[fk] for fk in pmetrics], axis=0)
-        print(f"got pgroup {pk}")
         zgrp[f"/pgroups/{pk}/data/eto"][...] = parr.astype(np.float16)
 
 
@@ -189,7 +222,7 @@ if __name__=="__main__":
     out_zarr_dir = Path("/rhome/mdodson/ETo-Viewer/data/store")
     vector_dir = Path("/rhome/mdodson/ETo-Viewer/data/vector")
 
-    out_zarr_path = out_zarr_dir.joinpath("eto-forecast_new.zarr")
+    out_zarr_path = out_zarr_dir.joinpath("eto-forecast.zarr")
     domain_template = "domain_{domain}.geojson"
     source_template = "eto_forecast_gridmet_deg04_%Y-%m-%dT00.nc"
 
@@ -198,7 +231,7 @@ if __name__=="__main__":
 
     overwrite_existing = True
 
-    nworkers = 8
+    nworkers = 4
 
     """ ------------( end normal configuration )------------ """
 
@@ -235,3 +268,4 @@ if __name__=="__main__":
                 f"{a['zarr_region_path']}",
                 f"{a['date']}",
                 )
+    print("finished")
