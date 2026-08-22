@@ -318,16 +318,14 @@ export class Map {
 
             this.active_feature = {
                 type:"pixel",
+                scope:"pixel",
+                source:"pixel-marker",
                 lat:lat,
                 lon:lng,
                 pxy:pxy,
                 pxx:pxx,
             };
-            this._notify_subscribers({
-                scope:"pixel",
-                loc:[pxy, pxx],
-                coords:[lat, lng],
-            });
+            this._notify_subscribers(this.active_feature);
             this.awaiting_click = false;
             return;
         } else {
@@ -370,17 +368,13 @@ export class Map {
 
                     this.active_feature = {
                         type:"vector",
+                        scope:this.source_scopes[f.source].scope,
                         source:f.source,
                         id:f.id,
                         props:f.properties,
                         UID:f.properties.UID,
                     };
-                    this._notify_subscribers({
-                        scope:this.click_scope,
-                        loc:f.id,
-                        props:f.properties,
-                        UID:f.properties.UID,
-                    });
+                    this._notify_subscribers(this.active_feature);
                     this.awaiting_click = false;
                     return;
                 }

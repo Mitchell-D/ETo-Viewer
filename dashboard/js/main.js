@@ -61,6 +61,8 @@ const state = {
         cmaps:"/api/cmaps",
         pgroup:"/api/pgroup",
         map_glyphs:"https://fonts.openmaptiles.org/{fontstack}/{range}.pbf",
+        polygon:"/api/polygon",
+        pixel:"/api/pixel",
     },
     labels:{
         regions:null,
@@ -565,6 +567,22 @@ const pgroups_active = Promise.all([map_regions_bound,menu_forms_initialized])
         }
         MAP.subscribe(click => {
             console.log("map click:", click);
+            let u = `/${state.sel.region}/${state.sel.feat}/`+state.sel.itime;
+            if (click.type === "vector") {
+                u += `/${state.sel.pgroup}/${click.UID}`;
+                fetch(state.urls.polygon + u)
+                    .then(r => r.json())
+                    .then(r => {
+                        console.log(r);
+                    });
+            } else if (click.type === "pixel") {
+                u += `/${click.pxy}/${click.pxx}`;
+                fetch(state.urls.pixel + u)
+                    .then(r => r.json())
+                    .then(r => {
+                        console.log(r);
+                    });
+            }
         });
     })
     .then(() => {

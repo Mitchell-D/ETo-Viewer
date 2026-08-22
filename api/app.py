@@ -37,8 +37,10 @@ zattrs = dict(zgrp.attrs)
 
 ## determine the initialization times available for each region/feat combo
 itimes = {} ## region:feat:[times]
+m_valid = {}
 for rk in zgrp["regions"].keys():
     itimes[rk] = {fk:[] for fk in zattrs["labels"]["feats"]}
+    m_valid[rk] = zgrp[f"/regions/{rk}/m_valid"][...]
     for dstr in zgrp[f"/regions/{rk}/data"].keys():
         if "eto_spatial" in zgrp[f"/regions/{rk}/data/{dstr}"].keys():
             itimes[rk]["eto"].append(dstr)
@@ -53,6 +55,14 @@ for dstr in zgrp["vtimes"].keys():
         ]
 
 pgroups = zattrs["pgroups"] ## pgroup:region:{geojson}
+pgroup_ixs = {}
+for pgk in pgroups.keys():
+    pgroup_ixs[pgk] = {}
+    for rk in pgroups[pgk]:
+        pgroup_ixs[pgk][rk] = {}
+        for i,f in enumerate(pgroups[pgk][rk]["features"]):
+            pgroup_ixs[pgk][rk][f["properties"]["UID"]] = i
+
 
 ## explicitly collect metadata relevant to IFS ensemble data.
 meta_eto = {
@@ -192,7 +202,7 @@ async def raster_cache_get(request:Request, background:BackgroundTasks,
                 X = zgrp[f"/regions/{region}/data/{itime}/{feat}_spatial"][...]
                 frames = {
                     mk:X[mix].tobytes()
-                    for mix,mk in enumerate(meta_eto["labels"]["metrics"])
+                    for mix,mk in enumerate(meta_eto["labels"]["metrics_raster"])
                     }
                 cur_frame = frames.pop(metric)
                 await rcache.hsetex(
@@ -263,7 +273,7 @@ app.add_middleware(
 """ ---( app endpoints )--- """
 
 @app.get("/eto/raster/{region}/{feat}/{metric}/{itime}")
-async def gefs_raster(request:Request, background:BackgroundTasks,
+async def req_gefs_raster(request:Request, background:BackgroundTasks,
         region:str, feat:str, metric:str, itime:str,
         ):
     """
@@ -278,13 +288,13 @@ async def gefs_raster(request:Request, background:BackgroundTasks,
     if DEBUG:
         dbt0 = perf_counter()
     ## validate the inputs
-    if not region in meta_gefs["labels"]["regions"]:
+    if not region in meta_eto["labels"]["regions"]:
         raise HTTPException(status_code=400, detail=f"Invalid region:{region}")
-    if not feat in meta_gefs["labels"]["feats"]:
+    if not feat in meta_eto["labels"]["feats"]:
         raise HTTPException(status_code=400, detail=f"Invalid feat:{feat}")
-    if not metric in meta_gefs["labels"]["metrics"]:
+    if not metric in meta_eto["labels"]["metrics_raster"]:
         raise HTTPException(status_code=400, detail=f"Invalid metric:{metric}")
-    if not itime in meta_gefs["labels"]["itimes"][region][feat]:
+    if not itime in meta_eto["labels"]["itimes"][region][feat]:
         raise HTTPException(
             status_code=400,
             detail=f"Invalid init time:{itime}"
@@ -304,9 +314,9 @@ async def gefs_raster(request:Request, background:BackgroundTasks,
             ckey=ckey,
             )
     cshape = (
-        meta_gefs["nvtimes"],
-        meta_gefs["regions"][region]["height"],
-        meta_gefs["regions"][region]["width"],
+        meta_eto["nvtimes"],
+        meta_eto["regions"][region]["height"],
+        meta_eto["regions"][region]["width"],
         )
     carr = np.frombuffer(cached, dtype=np.uint16).reshape(cshape)
     nbytes = str(carr.nbytes)
@@ -327,7 +337,7 @@ async def gefs_raster(request:Request, background:BackgroundTasks,
     return r
 
 @app.get("/pgroup/{pgroup}/{region}")
-def pgroup(pgroup:str, region:str):
+def req_pgroup(pgroup:str, region:str):
     """ endpoint for map polygon geojsons """
     if not pgroup in pgroups.keys():
         raise HTTPException(status_code=400, detail=f"Invalid pgroup:{pgroup}")
@@ -335,12 +345,60 @@ def pgroup(pgroup:str, region:str):
         raise HTTPException(status_code=400, detail=f"Invalid region:{region}")
     return pgroups[pgroup][region]
 
+@app.get("/polygon/{region}/{feat}/{itime}/{pgroup}/{uid}")
+def req_polygon(region:str, feat:str, itime:str, pgroup:str, uid:str):
+    """ """
+    if not pgroup in pgroups.keys():
+        raise HTTPException(status_code=400, detail=f"Invalid pgroup:{pgroup}")
+    if not region in pgroups[pgroup].keys():
+        raise HTTPException(status_code=400, detail=f"Invalid region:{region}")
+    if not uid in pgroup_ixs[pgroup][region].keys():
+        raise HTTPException(status_code=400, detail=f"Invalid uid:{uid}")
+    if not feat in meta_eto["labels"]["feats"]:
+        raise HTTPException(status_code=400, detail=f"Invalid feat:{feat}")
+    if not itime in meta_eto["labels"]["itimes"][region][feat]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid init time:{itime}"
+            )
+    pix = pgroup_ixs[pgroup][region][uid]
+    x = zgrp[f"/regions/{region}/pgroups/{pgroup}/data/{itime}/{feat}"][pix]
+    return x.tolist()
+
+@app.get("/pixel/{region}/{feat}/{itime}/{pxy}/{pxx}")
+def req_pixel(region:str, feat:str, itime:str, pxy:str, pxx:str):
+    """ """
+    if not region in meta_eto["labels"]["regions"]:
+        raise HTTPException(status_code=400, detail=f"Invalid region:{region}")
+    if not feat in meta_eto["labels"]["feats"]:
+        raise HTTPException(status_code=400, detail=f"Invalid feat:{feat}")
+    if not itime in meta_eto["labels"]["itimes"][region][feat]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid init time:{itime}"
+            )
+    if not pxy.isnumeric() or not pxx.isnumeric():
+        raise HTTPException(
+            status_code=400,
+            detail=f"pixels must be integer values, not ({pxy}, {pxx})"
+            )
+    pxy = int(pxy)
+    pxx = int(pxx)
+    if pxy<0 or pxy >= meta_eto["regions"][region]["height"]:
+        return []
+    if pxx<0 or pxx >= meta_eto["regions"][region]["width"]:
+        return []
+    if m_valid[region][pxy,pxx] == False:
+        return []
+    x = zgrp[f"/regions/{region}/data/{itime}/{feat}_temporal"][pxy, pxx]
+    return x.tolist()
+
 @app.get("/eto/menu")
-def eto_menu():
+def req_eto_menu():
     """ endpoint for menu information (labels, time range, etc) """
     return meta_eto
 
 @app.get("/cmaps")
-def cmaps():
+def req_cmaps():
     """ endpoint for concatenated color maps array and its metadata """
     return cmap_info

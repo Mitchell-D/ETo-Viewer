@@ -106,7 +106,7 @@ def extract_region_eto(
     tcss = config.backend["temporal_chunk_spatial_shape"]
 
     ds = nc.Dataset(nc_source_path, "r")
-    eto_source = ds["ETo"][...] / 25.4 ## convert mm/day to in/day
+    eto_source = ds["ETo"][:,:,::-1,:] / 25.4 ## convert mm/day to in/day
     assert eto_source.shape[0] == nvtimes
 
     zgrp = zarr.open(zarr_out_path, path=zarr_region_path, mode="a")
