@@ -59,6 +59,21 @@ export const map_anchors = [
         layout: { visibility: "none" },
     },
     {
+        id: "states-highlight-anchor",
+        type: "background",
+        layout: { visibility: "none" },
+    },
+    {
+        id: "counties-highlight-anchor",
+        type: "background",
+        layout: { visibility: "none" },
+    },
+    {
+        id: "pixel-highlight-anchor",
+        type: "background",
+        layout: { visibility: "none" },
+    },
+    {
         id: "top-anchor",
         type: "background",
         layout: { visibility: "none" },
@@ -74,44 +89,30 @@ export const vector_anchors = {
     places:"places-anchor",
 };
 
+export const highlight_anchors = {
+    counties:"counties-highlight-anchor",
+    states:"states-highlight-anchor",
+    pixel:"pixel-highlight-anchor",
+}
+
 export const vector_styles = {
     states:[
         {
             name:"core",
             type:"line",
             paint:{
-                "line-color":[
-                    "case",
-                    ["boolean", ["feature-state", "selected"], false],
-                    "#0f9423", // enabled
-                    "#2a2c2e", // disabled
-                ],
+                "line-color":"#2a2c2e",
                 "line-opacity":1,
-                "line-width":[
-                    "case",
-                    ["boolean", ["feature-state", "selected"], false],
-                    3, // enabled
-                    2, // disabled
-                ],
+                "line-width":2,
             },
         },
         {
             name:"case",
             type:"line",
             paint:{
-                "line-color":[
-                    "case",
-                    ["boolean", ["feature-state", "selected"], false],
-                    "#0f9423", // enabled
-                    "#d0d0d1", // disabled
-                ],
+                "line-color":"#777f85",
                 "line-opacity":1,
-                "line-width":[
-                    "case",
-                    ["boolean", ["feature-state", "selected"], false],
-                    3.5, // enabled
-                    2.5, // disabled
-                ],
+                "line-width":3,
             },
         },
         {
@@ -128,38 +129,18 @@ export const vector_styles = {
             name:"core",
             type:"line",
             paint:{
-                "line-color":[
-                    "case",
-                    ["boolean", ["feature-state", "selected"], false],
-                    "#0f9423", // enabled
-                    "#2a2c2e", // disabled
-                ],
+                "line-color":"#2a2c2e",
                 "line-opacity":1,
-                "line-width":[
-                    "case",
-                    ["boolean", ["feature-state", "selected"], false],
-                    2, // enabled
-                    1, // disabled
-                ],
+                "line-width":1,
             },
         },
         {
             name:"case",
             type:"line",
             paint:{
-                "line-color":[
-                    "case",
-                    ["boolean", ["feature-state", "selected"], false],
-                    "#0f9423", // enabled
-                    "#d0d0d1", // disabled
-                ],
+                "line-color":"#777f85",
                 "line-opacity":1,
-                "line-width":[
-                    "case",
-                    ["boolean", ["feature-state", "selected"], false],
-                    2.5, // enabled
-                    1.5, // disabled
-                ],
+                "line-width":2,
             },
         },
         {
@@ -215,7 +196,7 @@ export const vector_styles = {
             type:"line",
             paint:{
                 "line-color":"#ffffff",
-                "line-opacity":.8,
+                "line-opacity":1.,
                 "line-width":4,
                 //"line-dasharray":[2, 4],
             },
@@ -236,7 +217,7 @@ export const vector_styles = {
             type:"line",
             paint:{
                 "line-color":"#adc5ff",
-                "line-opacity":.8,
+                "line-opacity":1.,
                 "line-width":2,
             },
         },
@@ -273,3 +254,67 @@ export const vector_styles = {
         },
     ],
 };
+
+export const highlight_styles = {
+    counties:[
+        {
+            name:"core",
+            type:"line",
+            paint:{
+                "line-color":"#02520e",
+                "line-opacity":1.,
+                "line-width":1.5,
+            },
+        },
+        {
+            name:"case",
+            type:"line",
+            paint:{
+                "line-color":"#56b065",
+                "line-opacity":1.,
+                "line-width":4,
+            },
+        },
+    ],
+    states:[
+        {
+            name:"core",
+            type:"line",
+            paint:{
+                "line-color":"#02520e",
+                "line-opacity":1.,
+                "line-width":1.5,
+            },
+        },
+        {
+            name:"case",
+            type:"line",
+            paint:{
+                "line-color":"#56b065",
+                "line-opacity":1.,
+                "line-width":4,
+            },
+        },
+    ],
+    pixel:[
+        {
+            name:"core",
+            type:"circle",
+            paint:{
+                "circle-color":"#02520e",
+                "circle-radius":3,
+            },
+            layout:{},
+        },
+        {
+            name:"case",
+            type:"circle",
+            paint:{
+                "circle-color":"#56b065",
+                "circle-radius":4,
+            },
+            layout:{},
+        },
+    ],
+};
+

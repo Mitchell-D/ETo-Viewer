@@ -4,7 +4,10 @@ import { Menu } from "./Menu.js";
 import { DualRangeSlider } from "./DualRangeSlider.js";
 import { EToRasterBuffer } from "./EToRasterBuffer.js";
 import { BufferSlider } from "./BufferSlider.js";
-import { vector_anchors, vector_styles, map_anchors } from "./map_styles.js";
+import {
+    vector_anchors, vector_styles, map_anchors,
+    highlight_anchors, highlight_styles,
+} from "./map_styles.js";
 
 const state = {
     dom:{
@@ -255,6 +258,8 @@ const map_started = Promise.all([dom_ready, meta_loaded])
             map_container:mcon,
             map_anchors:map_anchors,
             glyphs_url:state.urls.map_glyphs,
+            pixel_marker_anchor:highlight_anchors["pixel"],
+            pixel_marker_layers:highlight_styles["pixel"],
         });
         MAP.set_region({
             bbox:[
@@ -529,6 +534,9 @@ function add_region_pgroups(region) {
                         data:r,
                         layers:vector_styles[pg],
                         anchor:vector_anchors[pg],
+                        click_scope:`pgroup-${pg}`,
+                        highlight_anchor:highlight_anchors[pg],
+                        highlight_layers:highlight_styles[pg],
                     });
                 });
         }
