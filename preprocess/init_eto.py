@@ -47,6 +47,7 @@ def get_region_mapping(
     lat = lat[yix0:yixf]
     lon = lon[xix0:xixf]
     m_valid = m_valid[yix0:yixf,xix0:xixf]
+    src_slice = ((yix0, yixf), (xix0, xixf))
     #'''
 
     assert lat.size > 1, f"polygon out of range of {lat_min} - {lat_max}"
@@ -160,21 +161,28 @@ def get_region_mapping(
             mask_oversample_factor,
             ).mean(axis=(1,3))
     m_inside = frac >= mask_coverage_cutoff
-    m_all_valid = np.copy(m_inside)
 
+    #'''
+    #ixmap = []
+    m_all_valid = np.copy(m_inside)
     for j,i in np.ndindex(m_inside.shape):
         if not m_inside[j,i]:
             continue
         if not m_valid[j_src[j,i], i_src[j,i]]:
             m_all_valid[j,i] = False
+        #ixmap.append([j_src[j,i], i_src[j,i]])
+    #ixmap = np.asarray(ixmap).T
+    #'''
 
     geo_ref_src["transform"] = geo_ref_src["transform"].to_gdal()
     geo_ref_out["transform"] = geo_ref_out["transform"].to_gdal()
     return coord_range_out, \
         (geo_ref_src,geo_ref_out), \
+        src_slice, \
         np.stack((j_src,i_src), axis=0), \
         (lat_out, lon_out), \
         m_all_valid
+        #ixmap,
 
 def polygon_fraction_subgrids(geo_ref_src, m_valid, multipolygon,
         mask_oversample_factor=16):
@@ -278,7 +286,7 @@ if __name__=="__main__":
     out_zarr_dir = Path("/rhome/mdodson/ETo-Viewer/data/store")
     vector_dir = Path("/rhome/mdodson/ETo-Viewer/data/vector")
 
-    out_zarr_path = out_zarr_dir.joinpath("eto-forecast.zarr")
+    out_zarr_path = out_zarr_dir.joinpath("eto-forecast_new.zarr")
     domain_template = "domain_{domain}.geojson"
     sample_file = source_dir.joinpath(
         "eto_forecast_gridmet_deg04_2026-08-17T00.nc")
@@ -310,7 +318,7 @@ if __name__=="__main__":
         print(f"getting {r}")
         zgrp["regions"].create_group(r)
         poly = gpd.read_file(d).geometry[0]
-        crout,(grs,gro),ixmap,(lat_out,lon_out),m_sub = get_region_mapping(
+        cout,(grs,gro),sslc,ixmap,(lat_out,lon_out),m_sub = get_region_mapping(
             domain_polygon=poly,
             lat=lat,
             lon=lon,
@@ -320,13 +328,14 @@ if __name__=="__main__":
             mask_oversample_factor=config.backend["oversample_factor"],
             mask_coverage_cutoff=config.backend["region_mask_coverage_cutoff"],
             )
-        print(crout, m_sub.shape, np.count_nonzero(m_sub))
+        print(cout, sslc, m_sub.shape, np.count_nonzero(m_sub))
         zgrp[f"/regions/{r}"].create_array("m_valid", data=m_sub)
         zgrp[f"/regions/{r}"].create_array("lat", data=lat_out)
         zgrp[f"/regions/{r}"].create_array("lon", data=lon_out)
         zgrp[f"/regions/{r}"].create_array("index_map", data=ixmap)
         zgrp[f"/regions/{r}"].attrs.update({
-            "coord_range":crout,
+            "coord_range":cout,
+            "source_slice":sslc,
             "geo_ref_src":grs,
             "geo_ref_out":gro,
             })

@@ -105,14 +105,18 @@ def extract_region_eto(
     tsss = config.backend["temporal_shard_spatial_shape"]
     tcss = config.backend["temporal_chunk_spatial_shape"]
 
-    ds = nc.Dataset(nc_source_path, "r")
-    eto_source = ds["ETo"][:,:,::-1,:] / 25.4 ## convert mm/day to in/day
-    assert eto_source.shape[0] == nvtimes
-
+    ## load the relevant information from the zarr store
     zgrp = zarr.open(zarr_out_path, path=zarr_region_path, mode="a")
+    pslices = zgrp.attrs["pgroup_slices"]
+    ((ixy0, ixyf), (ixx0, ixxf)) = zgrp.attrs["source_slice"]
     m_valid = zgrp["m_valid"][...]
     ixmap = zgrp["index_map"][...][:,m_valid]
-    pslices = zgrp.attrs["pgroup_slices"]
+
+    ## open and subset the source file to the regional subdomain
+    ds = nc.Dataset(nc_source_path, "r")
+    ## convert mm/day to in/day
+    eto_source = ds["ETo"][:,:,::-1,:][..., ixy0:ixyf, ixx0:ixxf] / 25.4
+    assert eto_source.shape[0] == nvtimes
 
     get_raster = True
     if not "data" in zgrp.keys():
@@ -218,7 +222,7 @@ if __name__=="__main__":
     out_zarr_dir = Path("/rhome/mdodson/ETo-Viewer/data/store")
     vector_dir = Path("/rhome/mdodson/ETo-Viewer/data/vector")
 
-    out_zarr_path = out_zarr_dir.joinpath("eto-forecast.zarr")
+    out_zarr_path = out_zarr_dir.joinpath("eto-forecast_new.zarr")
     domain_template = "domain_{domain}.geojson"
     source_template = "eto_forecast_gridmet_deg04_%Y-%m-%dT00.nc"
 
