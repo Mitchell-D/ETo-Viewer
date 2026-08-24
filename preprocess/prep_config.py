@@ -60,8 +60,8 @@ if __name__=="__main__":
     vec_dir = Path("data/vector")
 
     load_meta = True
-    load_cmaps = True
-    load_pgroups = True
+    load_cmaps = False
+    load_pgroups = False
     load_domains = False
 
     if load_meta:
@@ -77,6 +77,7 @@ if __name__=="__main__":
         zgrp.attrs.update({
             **config.frontend,
             "regions":rconf,
+            "plots":config.plot_config,
             })
 
     if load_cmaps:

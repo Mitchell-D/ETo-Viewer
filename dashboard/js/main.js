@@ -9,6 +9,8 @@ import {
     highlight_anchors, highlight_styles,
 } from "./map_styles.js";
 
+import { TimeSeries } from "./TimeSeries.js";
+
 const state = {
     dom:{
         text_main_feat:"main_header_text",
@@ -26,6 +28,7 @@ const state = {
         cbar_container:"cbar_container",
         buffer_slider_container:"main_container_buffer_slider",
         vector_toggle_container:"main_container_vector_toggle",
+        fig_stats_container:"fig_stats_container",
 
         cmap_slider_container_id:"cmap_slider_row",
 
@@ -56,13 +59,14 @@ const state = {
         array:null,
     },
     urls:{
-        raster:"/api/eto/raster",
-        menu:"/api/eto/menu",
+        raster:"/api/raster",
+        menu:"/api/menu",
         cmaps:"/api/cmaps",
         pgroup:"/api/pgroup",
         map_glyphs:"https://fonts.openmaptiles.org/{fontstack}/{range}.pbf",
         polygon:"/api/polygon",
         pixel:"/api/pixel",
+        plots:"/api/plots",
     },
     labels:{
         regions:null,
@@ -71,6 +75,7 @@ const state = {
         metrics_pgroup:null,
         metrics_spread:null,
         itimes:null,
+        vtimes:null,
         pgroups:null,
     },
     long_labels:{
@@ -85,7 +90,6 @@ const state = {
         metrics:null,
         units:null,
     },
-    vtimes:null, // maps regions to itimes to vtimes as YYYYmmddHH
     regions:null, // maps region numbers to dimensions and coord bounds
     nvtimes:null, // number of valid times per forecast run
     norm:{
@@ -153,6 +157,7 @@ let MENU_CMAP = null; // color map name forms
 let MAIN_CBAR = null;
 let RASTER_BUFFER = null;
 let BUFFER_SLIDER = null;
+let PLOT_STATS = null;
 
 function fmt_date_string(dstr) {
     const s = `${dstr.slice(0,4)}-${dstr.slice(4,6)}-${dstr.slice(6,8)}`;
@@ -177,7 +182,6 @@ function update_main_labels() {
 const meta_loaded = fetch(state.urls.menu)
     .then(r => r.json())
     .then(r => {
-        console.log(r);
         state.labels.regions = r["labels"]["regions"];
         state.labels.feats = r["labels"]["feats"];
         state.labels.metrics_raster = r["labels"]["metrics_raster"];
@@ -221,6 +225,19 @@ const meta_loaded = fetch(state.urls.menu)
         const cur_its = state.labels.itimes[state.sel.region][state.sel.feat];
         state.sel.itime = cur_its[cur_its.length - 1];
         update_main_labels();
+    });
+
+const plots_loaded = fetch(state.urls.plots)
+    .then(r => r.json())
+    .then(r => {
+        console.log(r);
+        PLOT_STATS = new TimeSeries({
+            container_id:state.dom.fig_stats_container,
+            layout:r["stats"]["layout"],
+            legends:r["stats"]["legends"],
+            elements:r["stats"]["elements"],
+            time_template:"%Y%m%d",
+        });
     });
 
 const cmaps_loaded = fetch(state.urls.cmaps)
@@ -568,21 +585,27 @@ const pgroups_active = Promise.all([map_regions_bound,menu_forms_initialized])
         MAP.subscribe(click => {
             console.log("map click:", click);
             let u = `/${state.sel.region}/${state.sel.feat}/`+state.sel.itime;
+            let p = null;
             if (click.type === "vector") {
                 u += `/${state.sel.pgroup}/${click.UID}`;
-                fetch(state.urls.polygon + u)
-                    .then(r => r.json())
-                    .then(r => {
-                        console.log(r);
-                    });
+                p = fetch(state.urls.polygon + u).then(r => r.json());
             } else if (click.type === "pixel") {
                 u += `/${click.pxy}/${click.pxx}`;
-                fetch(state.urls.pixel + u)
-                    .then(r => r.json())
-                    .then(r => {
-                        console.log(r);
-                    });
+                p = fetch(state.urls.pixel + u).then(r => r.json());
             }
+            Promise.all([p, plots_loaded]).then(r => {
+                const stats = r[0];
+                // if an empty list is returned, the request was invalid.
+                if (stats.length === 0) return;
+                const new_lines = {}
+                for (const i in stats) {
+                    new_lines[state.labels.metrics_pgroup[i]] = stats[i];
+                }
+                PLOT_STATS.set_new_buffer({
+                    dates:state.labels.vtimes[state.sel.itime],
+                    data:new_lines,
+                });
+            });
         });
     })
     .then(() => {

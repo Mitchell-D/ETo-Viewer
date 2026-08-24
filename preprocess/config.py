@@ -297,3 +297,93 @@ custom_cmaps = {
             ],
         },
     }
+
+plot_config = {
+    "stats":{
+        "order":[
+            "cur-p10-p90", "cur-p25-p75", "cur-minmax",
+            "cur-stddev", "cur-mean",
+            ],
+        "layout":{
+            "margin":{"top":10,"right":5,"bottom":160,"left":48},
+            "y_label":"",
+            "item_width":180,
+            "item_height":14,
+            },
+        "legends":{
+            "cur":{
+                "title":"Current",
+                "x_offset":0,
+                "y_offset":-70,
+                "item_height":14,
+                "item_width":240,
+                },
+            },
+        "elements":{
+            "cur-mean":{
+                "name":"Average",
+                "plot_type":"line",
+                "legend":"cur",
+
+                "width":"2",
+                "color":"#ff6161",
+                "show":True,
+
+                "data":"mean",
+                },
+            "cur-stddev":{
+                "name":"Standard Dev",
+                "plot_type":"surround",
+                "legend":"cur",
+
+                "width":"1",
+                "color":"#ed7979",
+                "dashes":"5,5,2",
+                "opacity":0,
+                "area_opacity":.3,
+                "show":False,
+
+                "data":{"center":"mean", "spread":"stddev"},
+                },
+            "cur-minmax":{
+                "name":"Min/Max",
+                "plot_type":"field",
+                "legend":"cur",
+
+                "width":"1",
+                "color":"#c4bbbb",
+                "area_opacity":0,
+                "show":False,
+
+                "data":{"lower":"min", "upper":"max"},
+                },
+            "cur-p10-p90":{
+                "name":"10-90th pctl",
+                "plot_type":"field",
+                "legend":"cur",
+
+                "width":"2",
+                "color":"#f5b073",
+                "opacity":0.,
+                "area_opacity":.25,
+                "show":True,
+
+                "data":{"lower":"p10", "upper":"p90"},
+                },
+            "cur-p25-p75":{
+                "name":"25-75th pctl",
+                "plot_type":"field",
+                "legend":"cur",
+
+                "width":"2",
+                "color":"#05a839",
+                "dashes":"5,5,2",
+                "opacity":.6,
+                "area_opacity":.25,
+                "show":True,
+
+                "data":{"lower":"p25", "upper":"p75"},
+                },
+            },
+        },
+    }

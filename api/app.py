@@ -63,6 +63,20 @@ for pgk in pgroups.keys():
         for i,f in enumerate(pgroups[pgk][rk]["features"]):
             pgroup_ixs[pgk][rk][f["properties"]["UID"]] = i
 
+## restructure the plot config into ordered lists
+plot_info = {}
+for pgk,pgv in zattrs["plots"].items():
+    plot_info[pgk] = {
+        "layout":pgv["layout"],
+        "legends":[
+            {"legend_key":lk, **lv}
+            for lk,lv in pgv["legends"].items()
+            ],
+        "elements":list(sorted(
+            [ {"element_key":lk, **lv} for lk,lv in pgv["elements"].items() ],
+            key=lambda v:pgv["order"].index(v["element_key"])
+            )),
+        }
 
 ## explicitly collect metadata relevant to IFS ensemble data.
 meta_eto = {
@@ -255,7 +269,7 @@ async def raster_cache_get(request:Request, background:BackgroundTasks,
 """ ---( app initialization )--- """
 
 ## declare app and add middleware for logging requests
-app = FastAPI(title="RxBurn Database", lifespan=lifespan)
+app = FastAPI(title="ETo API", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -272,7 +286,7 @@ app.add_middleware(
 
 """ ---( app endpoints )--- """
 
-@app.get("/eto/raster/{region}/{feat}/{metric}/{itime}")
+@app.get("/raster/{region}/{feat}/{metric}/{itime}")
 async def req_gefs_raster(request:Request, background:BackgroundTasks,
         region:str, feat:str, metric:str, itime:str,
         ):
@@ -393,8 +407,8 @@ def req_pixel(region:str, feat:str, itime:str, pxy:str, pxx:str):
     x = zgrp[f"/regions/{region}/data/{itime}/{feat}_temporal"][pxy, pxx]
     return x.tolist()
 
-@app.get("/eto/menu")
-def req_eto_menu():
+@app.get("/menu")
+def req_menu():
     """ endpoint for menu information (labels, time range, etc) """
     return meta_eto
 
@@ -402,3 +416,7 @@ def req_eto_menu():
 def req_cmaps():
     """ endpoint for concatenated color maps array and its metadata """
     return cmap_info
+
+@app.get("/plots")
+def req_plots():
+    return plot_info
