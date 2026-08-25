@@ -48,7 +48,8 @@ services:
     volumes:
       - ./dashboard:/usr/share/nginx/html:Z
       - ./dashboard/default.conf:/etc/nginx/conf.d/default.conf:ro,Z
-      - eto-nginx-cache:/var/cache/nginx/eto_data_cache
+    tmpfs:
+      - /var/cache/nginx/eto_data_cache:rw,noexec,nosuid,size=512m
     environment:
       - USERNS_MODE=keep-id
     depends_on:
@@ -56,10 +57,6 @@ services:
       - eto-basemap
     networks:
       - eto-backend
-
-## named volume for proxy cache created by nginx server
-volumes:
-  eto-nginx-cache:
 
 networks:
   eto-backend:

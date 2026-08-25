@@ -52,7 +52,6 @@ const state = {
         cmin:null, // minimum value bound for color map
         cmax:null, // minimum value bound for color map
         cmap:null,
-        global_mask_active:false,
     },
     // promises for current array and mask loaded in WASM
     cur:{
@@ -116,14 +115,6 @@ const state = {
 
     // degree bounds around selected domain within which to allow panning
     map_bounds_buffer:[6, 6],
-
-    mask_table_header_labels:[
-        "Feature",
-        "Metric",
-        "Minimum",
-        "Maximum",
-        "Delete",
-    ],
 
     // keep track of whether the feature or metric is in the process of
     // changing so that the subsequent color map and slider updates don't
@@ -655,33 +646,22 @@ const vector_toggles_active = map_regions_bound
     });
 */
 
-/*
 function update_active_array() {
-    // de-activate BUFFER_SLIDER as long as array or mask requests are
-    // ongoing so that its subscriptions are only notified when the required
-    // arrays are present in the RASTER_BUFFER
+    // de-activate BUFFER_SLIDER as long as array requests are ongoing so that
+    // its subscriptions are only notified when the required arrays are
+    // present in the RASTER_BUFFER
     if (BUFFER_SLIDER !== null) {
         BUFFER_SLIDER.set_active(false);
-        BUFFER_SLIDER.update(
-            state.labels.vtimes[state.sel.itime]
-        );
+        BUFFER_SLIDER.update(state.labels.vtimes[state.sel.itime]);
     }
-    const {array, masks} = RASTER_BUFFER.update_array({
-        array_request:{
-            region:state.sel.region,
-            feat:state.sel.feat,
-            metric:state.sel.metric_raster,
-            itime:state.sel.itime,
-        },
-        width:state.regions[state.sel.region].width,
-        height:state.regions[state.sel.region].height,
-        ntimes:state.nvtimes,
+    const array = RASTER_BUFFER.update_array({
+        region:state.sel.region,
+        feat:state.sel.feat,
+        metric:state.sel.metric_raster,
+        itime:state.sel.itime,
     });
     state.cur.array = array;
-    state.cur.mask = masks;
-    return Promise.all([
-        state.cur.array, state.cur.mask, vtimes_loaded
-    ]).then(() => {
+    return Promise.all([ state.cur.array, vtimes_loaded ]).then(() => {
         console.log("setting buffer active");
         BUFFER_SLIDER.set_active(true);
     });
@@ -692,8 +672,9 @@ const buffer_initialized = meta_loaded.then(async ()=> {
         const {width, height} = state.regions[r];
         rdims[r] = {width:width, height:height, ntimes:state.nvtimes};
     }
-    RASTER_BUFFER = new GEFSRasterBuffer({
+    RASTER_BUFFER = new EToRasterBuffer({
         url_formatter:(a) => {
+            console.log(a);
             return state.urls.raster
                 + `/${a.region}/${a.feat}/${a.metric}/${a.itime}`;
         },
@@ -726,10 +707,6 @@ async function new_active_rgb() {
         metric:state.sel.metric_raster,
         time_index:state.sel.vix,
         cmap:state.cmap.arrays[state.sel.cmap],
-        threshold_bounds:{
-            min:state.sel.tmin,
-            max:state.sel.tmax,
-        },
         cmap_bounds:{
             min:state.sel.cmin,
             max:state.sel.cmax,
@@ -771,4 +748,3 @@ const render_ready = Promise.all([
             }
         });
     });
-*/
