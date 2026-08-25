@@ -101,8 +101,8 @@ export const vector_styles = {
             name:"core",
             type:"line",
             paint:{
-                "line-color":"#2a2c2e",
-                "line-opacity":1,
+                "line-color":"#494d52",
+                "line-opacity":.8,
                 "line-width":2,
             },
         },
@@ -111,7 +111,7 @@ export const vector_styles = {
             type:"line",
             paint:{
                 "line-color":"#777f85",
-                "line-opacity":1,
+                "line-opacity":.6,
                 "line-width":3,
             },
         },
@@ -129,9 +129,9 @@ export const vector_styles = {
             name:"core",
             type:"line",
             paint:{
-                "line-color":"#2a2c2e",
-                "line-opacity":1,
-                "line-width":1,
+                "line-color":"#494d52",
+                "line-opacity":.8,
+                "line-width":.5,
             },
         },
         {
@@ -139,8 +139,8 @@ export const vector_styles = {
             type:"line",
             paint:{
                 "line-color":"#777f85",
-                "line-opacity":1,
-                "line-width":2,
+                "line-opacity":.6,
+                "line-width":1,
             },
         },
         {

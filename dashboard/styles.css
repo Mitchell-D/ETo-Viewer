@@ -35,6 +35,8 @@ body {
     margin-top:2px;
     padding:.15em;
     margin-top:.15em;
+    overflow:hidden;
+    text-overflow:ellipsis;
 }
 .menu-button-column {
     margin:2px;

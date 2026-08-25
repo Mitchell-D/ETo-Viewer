@@ -60,7 +60,7 @@ if __name__=="__main__":
     vec_dir = Path("data/vector")
 
     load_meta = True
-    load_cmaps = False
+    load_cmaps = True
     load_pgroups = False
     load_domains = False
 

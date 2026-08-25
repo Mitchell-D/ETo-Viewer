@@ -732,6 +732,7 @@ const render_ready = Promise.all([
             const rgb = new_active_rgb();
             update_main_labels();
             MAP.render(await rgb);
+            PLOT_STATS.set_active_index(state.sel.vix);
         });
         // relies on state being updated by previous subscription
         MENU_CSLIDER.subscribe(async v => {

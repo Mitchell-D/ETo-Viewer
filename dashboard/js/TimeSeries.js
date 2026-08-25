@@ -361,7 +361,6 @@ export class TimeSeries {
             .classed("cur-line", true)
             .attr("y1", this.scale_y.range()[0])
             .attr("y2", this.scale_y.range()[1])
-            .attr("stroke", "#262b33")
             .attr("stroke-width", 1.5)
             .style("opacity", 1);
 
