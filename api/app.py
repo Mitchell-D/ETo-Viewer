@@ -86,7 +86,10 @@ meta_eto = {
         "itimes":itimes,
         "vtimes":vtimes,
         },
+
     "regions":zattrs["regions"],
+
+    "region_map_form":dict(zgrp["region_map"].attrs),
 
     "nvtimes":zattrs["nvtimes"],
 
@@ -109,6 +112,9 @@ cmap_info = {
     "default_bounds":zattrs["cmap_default_bounds"],
     "default_name":zattrs["cmap_default_name"],
     }
+
+rm_borders = zgrp["region_map"]["borders"][...]
+rm_raster = zgrp["region_map"]["raster"][...]
 
 """ ---( cache methods )--- """
 
@@ -287,7 +293,7 @@ app.add_middleware(
 """ ---( app endpoints )--- """
 
 @app.get("/raster/{region}/{feat}/{metric}/{itime}")
-async def req_gefs_raster(request:Request, background:BackgroundTasks,
+async def req_raster(request:Request, background:BackgroundTasks,
         region:str, feat:str, metric:str, itime:str,
         ):
     """
@@ -420,3 +426,25 @@ def req_cmaps():
 @app.get("/plots")
 def req_plots():
     return plot_info
+
+@app.get("/regionmap/raster")
+def req_region_map_raster():
+    return Response(
+        content=rm_raster.tobytes(),
+        media_type="application/octet-stream",
+        headers={
+            "Content-Type":"application/octet-stream",
+            "Content-Length":str(rm_raster.nbytes),
+            }
+        )
+
+@app.get("/regionmap/borders")
+def req_region_map_borders():
+    return Response(
+        content=rm_borders.tobytes(),
+        media_type="application/octet-stream",
+        headers={
+            "Content-Type":"application/octet-stream",
+            "Content-Length":str(rm_borders.nbytes),
+            }
+        )

@@ -9,6 +9,8 @@ import {
     highlight_anchors, highlight_styles,
 } from "./map_styles.js";
 
+import { RegionMapForm } from "./RegionMapForm.js";
+
 import { TimeSeries } from "./TimeSeries.js";
 
 const state = {
@@ -16,6 +18,7 @@ const state = {
         text_main_feat:"main_header_text",
         text_main_date:"main_date_text",
         main_map_container:"main_map_container",
+        region_map_canvas_container:"region_map_canvas_container",
         region_menu_container:"dd_region_name",
         region_menu_button:"dd_button_region_name",
         itime_menu_container:"menu_container_itime",
@@ -66,6 +69,8 @@ const state = {
         polygon:"/api/polygon",
         pixel:"/api/pixel",
         plots:"/api/plots",
+        region_map_raster:"/api/regionmap/raster",
+        region_map_borders:"/api/regionmap/borders",
     },
     labels:{
         regions:null,
@@ -91,6 +96,13 @@ const state = {
     },
     regions:null, // maps region numbers to dimensions and coord bounds
     nvtimes:null, // number of valid times per forecast run
+
+    region_map_form: {
+        width:null,
+        height:null,
+        raster:null,
+        borders:null,
+    },
     norm:{
         bounds:null,
         resolution:null,
@@ -139,6 +151,7 @@ const dom_ready = new Promise(resolve => {
 
 let MAP = null; // main map
 let MENU_REGION = null; // init time menu
+let MAP_REGION = null;
 let MENU_ITIME = null; // init time menu
 let MENU_FEAT = null; // feature button menu
 let MENU_PGROUP = null; // feature button menu
@@ -182,6 +195,9 @@ const meta_loaded = fetch(state.urls.menu)
         state.labels.pgroups = r["labels"]["pgroups"];
         state.labels.pgroups.push("pixel");
         state.labels.vtimes = r["labels"]["vtimes"];
+
+        state.region_map_form.width = r["region_map_form"]["width"];
+        state.region_map_form.height = r["region_map_form"]["height"];
 
         state.regions = r["regions"];
 
@@ -414,6 +430,35 @@ const menu_forms_initialized = Promise.all([dom_ready, meta_loaded])
             console.log("new itime", new_itime);
         });
     });
+
+const region_map_forms_ready = Promise.all([
+    fetch(state.urls.region_map_raster).then(r => r.arrayBuffer()),
+    fetch(state.urls.region_map_borders).then(r => r.arrayBuffer()),
+    menu_forms_initialized,
+]).then(r => {
+    state.region_map_form.raster = new Uint8Array(r[0]);
+    state.region_map_form.borders = new Uint8Array(r[1]);
+    const mborders = r[1];
+    MAP_REGION = new RegionMapForm({
+        canvas_container:state.dom.region_map_canvas_container,
+        width:state.region_map_form.width,
+        height:state.region_map_form.height,
+        pixel_ids:state.region_map_form.raster,
+        display_array:state.region_map_form.borders,
+        default_id:state.labels.regions.indexOf(state.sel.region),
+    });
+
+    // no circular dependency here since MAP_REGION terminates when the
+    // same value is selected again.
+    MAP_REGION.subscribe(new_region => {
+        MENU_REGION.select(state.labels.regions[new_region]);
+    });
+
+    MENU_REGION.subscribe(new_region => {
+        MAP_REGION.set_id(state.labels.regions.indexOf(state.sel.region));
+    });
+});
+
 
 const sliders_initialized = Promise.all([
     dom_ready, menu_forms_initialized, cmaps_loaded])

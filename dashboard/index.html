@@ -28,7 +28,7 @@
         <a class="navbar-brand text-wrap col-md-4 col-lg-2 me-0 px-3" href="#">ETo Forecast Dashboard</a>
       </div>
       <div class="col-2 text-center">
-          <h4 style="color:#c23232;">EXPERIMENTAL</h4>
+          <h4 style="color:#ed8080;">EXPERIMENTAL</h4>
       </div>
       <div class="col-5 text-end"></div>
     </header>
@@ -41,6 +41,9 @@
             <div class="col menu-button-column">
               <div class="row justify-content-center">
                 <p class="menu-section-title">Region</p>
+              </div>
+              <div class="row">
+                <div id="region_map_canvas_container"></div>
               </div>
               <div class="row dropdown menu-button-container">
                 <button class="btn btn-primary dropdown-toggle dropdown-button menu-button" type="button" id="dd_button_region_name" data-bs-toggle="dropdown" aria-expanded="false">
@@ -95,6 +98,7 @@
 
           <div class="row" id="menu_cmap_row">
             <div class="col-md-12 menu-button-column">
+              <hr class="menu-rule"/>
               <div class="row justify-content-center">
                 <p class="menu-section-title">Color Map + Bounds</p>
               </div>
@@ -102,7 +106,7 @@
               <div class="row dropdown">
                 <button class="btn btn-primary dropdown-toggle dropdown-button menu-button" type="button" id="dd_button_cmap" data-bs-toggle="dropdown" aria-expanded="false">
                 </button>
-                <ul id="dd_cmap_name" class="dropdown-menu" aria-labelledby="dd_button_cmap_name"></ul>
+                <ul id="dd_cmap_name" class="dropdown-menu" aria-labelledby="dd_button_cmap"></ul>
               </div>
 
               <div class="row" id="cmap_slider_row">
@@ -126,12 +130,12 @@
 
                   <div class="row">
                     <div class="col-md-6 text-center bounds-input-container">
-                      <label for="slider-input-min" style="display:none;">Value Min</label>
-                      <input class="slider-input-min"></input>
+                      <label for="cslider_input_min">Cmap Min</label>
+                      <input id="cslider_input_min" class="slider-input-min"></input>
                     </div>
                     <div class="col-md-6 text-center bounds-input-container">
-                      <label for="slider-input-max" style="display:none;">Value Max</label>
-                      <input class="slider-input-max"></input>
+                      <label for="cslider_input_max">Cmap Max</label>
+                      <input id="cslider_input_max" class="slider-input-max"></input>
                     </div>
                   </div>
                 </div>
