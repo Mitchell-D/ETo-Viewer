@@ -21,6 +21,7 @@ export class RegionMapForm {
         this.pids = pixel_ids;
         this.darr = display_array;
         this.hlcolor = highlight_color;
+        this.mask_val = mask_val;
 
         // Set internal resolution to match raw pixel dimensions
         this.canvas.width = width;
@@ -53,6 +54,7 @@ export class RegionMapForm {
     }
 
     set_id(new_id) {
+        console.log("new id:", new_id, this.mask_val);
         if (new_id === this.mask_val) return;
         if (new_id === this.cur_id) return;
         this.cur_id = new_id;

@@ -66,6 +66,7 @@ export class Map {
             this.ctx = this.canvas.getContext("2d");
             this.cur_bbox = null;
             this.pixel_marker_anchor = pixel_marker_anchor;
+            this.clicking = false;
 
             this.active_feature = null;
             this.source_scopes = {};
@@ -129,58 +130,85 @@ export class Map {
         // make sure the map is ready
         await this.#ready;
 
-        // update the map view location
-        this.#map.setMaxBounds([
-            [bbox[0]-bounds_buffer[1], bbox[1]-bounds_buffer[0]],
-            [bbox[2]+bounds_buffer[1], bbox[3]+bounds_buffer[0]],
-        ]);
         const tmp_ctr = [(bbox[0]+bbox[2])/2, (bbox[1]+bbox[3])/2]
-        this.#map.setCenter(tmp_ctr);
         const def_click_coords = {lng:tmp_ctr[0], lat:tmp_ctr[1]}
+
+        const layers_added = new Promise((resolve, reject) => {
+            const cleanup = () => {
+                this.#map.off("idle", check_completion);
+                this.#map.off("sourcedata", check_completion);
+                this.#map.off("error", map_error);
+            };
+
+            const check_completion = () => {
+                // resolve if style is loaded and the source is ready
+                if (this.#map.isStyleLoaded()) {
+                    cleanup();
+                    resolve();
+                }
+            };
+
+            const map_error = (e) => {
+                cleanup();
+                reject(e.error ?? e);
+            };
+
+            this.#map.on("idle", check_completion);
+            this.#map.on("sourcedata", check_completion);
+            this.#map.on("error", map_error);
+            // update the map view location
+            this.#map.setMaxBounds([
+                [bbox[0]-bounds_buffer[1], bbox[1]-bounds_buffer[0]],
+                [bbox[2]+bounds_buffer[1], bbox[3]+bounds_buffer[0]],
+            ]);
+            this.#map.setCenter(tmp_ctr);
+
+            // update the raster canvas
+            this.canvas.width = raster_width;
+            this.canvas.height = raster_height;
+            this.ctx.imageSmoothingEnabled = false;
+            this.ctx.webkitImageSmoothingEnabled = false;
+            this.ctx.mozImageSmoothingEnabled = false;
+            this.cur_bbox = bbox;
+
+            const src = this.#map.getSource("raster");
+            const coords = [
+                [this.cur_bbox[0], this.cur_bbox[3]],
+                [this.cur_bbox[2], this.cur_bbox[3]],
+                [this.cur_bbox[2], this.cur_bbox[1]],
+                [this.cur_bbox[0], this.cur_bbox[1]],
+            ];
+            if (!src) {
+                this.#map.addSource("raster", {
+                    type:"canvas",
+                    canvas:this.canvas,
+                    coordinates:coords,
+                    animate:true,
+                });
+                this.#map.addLayer({
+                    id:"raster-layer",
+                    type:"raster",
+                    source:"raster",
+                    paint:{
+                        "raster-opacity":1.,
+                        "raster-resampling":"nearest",
+                    },
+                }, "raster-anchor");
+            } else {
+                src.setCoordinates(coords);
+            }
+            this.#map.triggerRepaint();
+            check_completion();
+        });
+
+        await layers_added;
+
+        this.awaiting_click = true;
         this.#map.fire("click", {
             lngLat:def_click_coords,
             point:this.#map.project(def_click_coords),
             originalEvent:new MouseEvent("click"),
         });
-
-        // update the raster canvas
-        this.canvas.width = raster_width;
-        this.canvas.height = raster_height;
-        this.ctx.imageSmoothingEnabled = false;
-        this.ctx.webkitImageSmoothingEnabled = false;
-        this.ctx.mozImageSmoothingEnabled = false;
-        this.cur_bbox = bbox;
-
-        const src = this.#map.getSource("raster");
-        const coords = [
-            [this.cur_bbox[0], this.cur_bbox[3]],
-            [this.cur_bbox[2], this.cur_bbox[3]],
-            [this.cur_bbox[2], this.cur_bbox[1]],
-            [this.cur_bbox[0], this.cur_bbox[1]],
-        ];
-        if (!src) {
-            this.#map.addSource("raster", {
-                type:"canvas",
-                canvas:this.canvas,
-                coordinates:coords,
-                animate:true,
-            });
-            this.#map.addLayer({
-                id:"raster-layer",
-                type:"raster",
-                source:"raster",
-                paint:{
-                    "raster-opacity":1.,
-                    "raster-resampling":"nearest",
-                },
-            }, "raster-anchor");
-        } else {
-            src.setCoordinates(coords);
-        }
-
-        if (this.awaiting_click && this.click_scope==="pixel") {
-            this.handle_click();
-        }
     }
 
     async add_geojson({
@@ -188,42 +216,65 @@ export class Map {
         data,
         layers,
         anchor,
-        click_scope=null,
-        highlight_anchor=null,
-        highlight_layers=null,
+        click_scope = null,
+        highlight_anchor = null,
+        highlight_layers = null,
     }) {
         if (click_scope === "pixel") {
             throw new Error("'pixel' is a reserved click scope");
         }
         await this.#ready;
-        return new Promise((resolve, reject) => {
-            const map_idle = () => {
-                this.#map.off("idle", map_idle);
-                resolve(data);
-            }
 
-            const map_error = (e) =>  {
-                this.#map.off("idle", map_idle);
+        // validate requirements before making any map updates
+        if (
+            click_scope &&
+            !data?.features?.[0]?.properties?.hasOwnProperty("UID")
+        ) {
+            throw new Error(`'UID' property required for clickable layers `
+                + `in source: ${name}`);
+        }
+
+        const layers_added = new Promise((resolve, reject) => {
+            const cleanup = () => {
+                this.#map.off("idle", check_completion);
+                this.#map.off("sourcedata", check_completion);
                 this.#map.off("error", map_error);
-                reject(e.error ?? e);
-            }
+            };
 
-            this.#map.once("idle", map_idle);
+            const check_completion = () => {
+                // resolve if style is loaded and the source is ready
+                if (this.#map.isStyleLoaded() &&
+                    this.#map.isSourceLoaded(name)
+                ) {
+                    cleanup();
+                    resolve(data);
+                }
+            };
+
+            const map_error = (e) => {
+                cleanup();
+                reject(e.error ?? e);
+            };
+
+            this.#map.on("idle", check_completion);
+            this.#map.on("sourcedata", check_completion);
             this.#map.on("error", map_error);
 
+            // add the geojson source
             this.#map.addSource(name, {
-                type:"geojson",
-                data:data,
-                //promoteId:"UID",
+                type: "geojson",
+                data: data,
             });
+
+            // add the layers
             let cur_anchor = anchor;
             for (const l of layers) {
                 this.#map.addLayer({
-                    id:`${name}_layer-${l.name}`,
-                    type:l.type,
-                    source:name,
-                    paint:l.paint,
-                    layout:l?.layout ?? {},
+                    id: `${name}_layer-${l.name}`,
+                    type: l.type,
+                    source: name,
+                    paint: l.paint,
+                    layout: l?.layout ?? {},
                 }, cur_anchor);
                 cur_anchor = `${name}_layer-${l.name}`;
             }
@@ -234,44 +285,47 @@ export class Map {
             // Also, a clickable source may have highlight layers that are
             // activated for that feature when it is selected.
             if (click_scope) {
-                if (!("UID" in data.features[0].properties)) {
-                    throw new Error(
-                        "'UID' property required for clickable layers not in:",
-                        name
-                    );
-                }
                 this.source_scopes[name] = {
-                    scope:click_scope,
-                    hlayers:[],
+                    scope: click_scope,
+                    hlayers: [],
                 };
-                if (highlight_anchor) {
-                    cur_anchor = highlight_anchor;
+
+                if (highlight_layers?.length) {
+                    cur_anchor = highlight_anchor ?? cur_anchor;
                     for (const l of highlight_layers) {
                         const lname = `${name}_highlight-${l.name}`;
                         this.source_scopes[name].hlayers.push(lname);
                         this.#map.addLayer({
-                            id:lname,
-                            type:l.type,
-                            source:name,
-                            paint:l.paint,
-                            layout:l?.layout ?? {},
-                            filter:["==", ["get", "UID"], null],
+                            id: lname,
+                            type: l.type,
+                            source: name,
+                            paint: l.paint,
+                            layout: l?.layout ?? {},
+                            filter: ["==", ["get", "UID"], null],
                         }, cur_anchor);
                         cur_anchor = lname;
                     }
                 }
             }
 
-            if (this.awaiting_click && name.includes(this.click_scope)) {
-                this.handle_click();
-            }
+            this.#map.triggerRepaint();
+            check_completion();
         });
+
+        await layers_added;
+
+        if (this.awaiting_click && name.includes(this.click_scope)) {
+            this.handle_click();
+        }
     }
 
     handle_click() {
+        if (this.clicking) return;
+        this.clicking = true;
         if (this.click_scope === "pixel") {
             if (this.cur_bbox === null) {
                 this.awaiting_click = true;
+                this.clicking = false;
                 return;
             }
             const {lng,lat} = this.last_click.coords;
@@ -281,8 +335,14 @@ export class Map {
                 / (this.cur_bbox[3]-this.cur_bbox[1]);
             const pxx = Math.floor(u * this.canvas.width)
             const pxy = Math.floor(v * this.canvas.height)
-            if (pxx < 0 || pxx >= this.canvas.width) return;
-            if (pxy < 0 || pxy >= this.canvas.height) return;
+            if (pxx < 0 || pxx >= this.canvas.width) {
+                this.clicking = false;
+                return;
+            }
+            if (pxy < 0 || pxy >= this.canvas.height) {
+                this.clicking = false;
+                return;
+            }
             if (this.active_feature !== null) {
                 // clear the activ feature if it's a vector type. If it's
                 // a pixel, setting the source data will change its position
@@ -299,6 +359,7 @@ export class Map {
                         (pxx == this.active_feature.pxx)
                         && (pxy == this.active_feature.pxy)
                     ) {
+                        this.clicking = false;
                         return;
                     }
                 }
@@ -327,10 +388,11 @@ export class Map {
             };
             this._notify_subscribers(this.active_feature);
             this.awaiting_click = false;
+            this.clicking = false;
             return;
         } else {
             const feats = this.#map.queryRenderedFeatures(
-                this.last_click.point
+                this.#map.project(this.last_click.coords)
             );
             for (const f of feats) {
                 // feature clicked with active scope...
@@ -343,7 +405,11 @@ export class Map {
                     if (this.active_feature !== null) {
                         if (this.active_feature.type === "vector") {
                             // ignore if the same feature is clicked again
-                            if (this.active_feature.id === f.id) {
+                            if (
+                                this.active_feature.id === f.id &&
+                                this.active_feature.source === f.source
+                            ) {
+                                this.clicking = false;
                                 return;
                             }
                             const cur_src = this.active_feature.source;
@@ -376,10 +442,12 @@ export class Map {
                     };
                     this._notify_subscribers(this.active_feature);
                     this.awaiting_click = false;
+                    this.clicking = false;
                     return;
                 }
             }
             this.awaiting_click = true;
+            this.clicking = false;
             return;
         }
     }

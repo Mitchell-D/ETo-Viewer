@@ -511,8 +511,8 @@ export class TimeSeries {
 
     // update the buffer with new dates and data
     set_new_buffer({dates, data}) {
-        console.log(dates);
-        console.log(data);
+        //console.log(dates);
+        //console.log(data);
 
         const parse = d3.timeParse(this.time_template);
 

@@ -198,6 +198,7 @@ const meta_loaded = fetch(state.urls.menu)
 
         state.region_map_form.width = r["region_map_form"]["width"];
         state.region_map_form.height = r["region_map_form"]["height"];
+        state.region_map_form.mask_val = r["region_map_form"]["mask_val"];
 
         state.regions = r["regions"];
 
@@ -384,7 +385,7 @@ const menu_forms_initialized = Promise.all([dom_ready, meta_loaded])
         });
 
         MENU_PGROUP.subscribe((new_pgroup) => {
-            console.log("new pgroup:", new_pgroup);
+            //console.log("new pgroup:", new_pgroup);
             state.sel.pgroup = new_pgroup;
         })
 
@@ -407,7 +408,7 @@ const menu_forms_initialized = Promise.all([dom_ready, meta_loaded])
             const mrbtn = document.getElementById(
                 state.dom.region_menu_button);
             mrbtn.textContent = state.long_labels.regions[state.sel.region];
-            console.log("new region:", new_region);
+            //console.log("new region:", new_region);
         });
 
         // subscribe the metric menu to update based on the feat menu
@@ -415,7 +416,7 @@ const menu_forms_initialized = Promise.all([dom_ready, meta_loaded])
             // main state needs to be the first to update so that subscribers
             // to the metric menu can be provided an up-to-date feat state
             state.sel.feat = new_feat;
-            console.log("new feat:", new_feat);
+            //console.log("new feat:", new_feat);
             MENU_METRIC.update([new_feat]);
         });
         // set subscriptions to menu (and by extension feat) changes
@@ -423,11 +424,11 @@ const menu_forms_initialized = Promise.all([dom_ready, meta_loaded])
             state.sel.metric_raster = new_metric;
             state.feat_or_metric_changing = true;
             update_main_labels();
-            console.log("new metric:", new_metric);
+            //console.log("new metric:", new_metric);
         });
         MENU_ITIME.subscribe((new_itime) => {
             state.sel.itime = new_itime;
-            console.log("new itime", new_itime);
+            //console.log("new itime", new_itime);
         });
     });
 
@@ -448,6 +449,7 @@ const region_map_forms_ready = Promise.all([
         pixel_ids:state.region_map_form.raster,
         display_array:state.region_map_form.borders,
         default_id:state.labels.regions.indexOf(state.sel.region),
+        mask_val:state.region_map_form.mask_val,
     });
 
     // no circular dependency here since MAP_REGION terminates when the
@@ -519,7 +521,7 @@ const sliders_initialized = Promise.all([
         MENU_CSLIDER.subscribe((cmin,cmax) => {
             state.sel.cmin = cmin;
             state.sel.cmax = cmax;
-            console.log("new cslider settings");
+            //console.log("new cslider settings");
             MAIN_CBAR.draw({
                 cbar:state.cmap.arrays[state.sel.cmap].slice(0,-4),
                 vmin:state.sel.cmin,
@@ -530,7 +532,7 @@ const sliders_initialized = Promise.all([
         });
 
         MENU_METRIC.subscribe((new_metric) => {
-            console.log("new metric");
+            //console.log("new metric");
             MENU_CMAP.update([state.sel.feat, state.sel.metric_raster]);
         });
         const cmap_btn = document.getElementById(
@@ -538,7 +540,7 @@ const sliders_initialized = Promise.all([
         cmap_btn.textContent = MENU_CMAP.current_value;
         MENU_CMAP.subscribe((new_cmap) => {
             state.sel.cmap = new_cmap;
-            console.log("new cmap");
+            //console.log("new cmap");
             cmap_btn.textContent = new_cmap;
             MAIN_CBAR.draw({
                 cbar:state.cmap.arrays[state.sel.cmap].slice(0,-4),
@@ -717,7 +719,7 @@ function update_active_array() {
     });
     state.cur.array = array;
     return Promise.all([ state.cur.array, vtimes_loaded ]).then(() => {
-        console.log("setting buffer active");
+        //console.log("setting buffer active");
         BUFFER_SLIDER.set_active(true);
     });
 }
@@ -729,7 +731,6 @@ const buffer_initialized = meta_loaded.then(async ()=> {
     }
     RASTER_BUFFER = new EToRasterBuffer({
         url_formatter:(a) => {
-            console.log(a);
             return state.urls.raster
                 + `/${a.region}/${a.feat}/${a.metric}/${a.itime}`;
         },

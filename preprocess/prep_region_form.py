@@ -8,7 +8,7 @@ from shapely import contains_xy
 import config
 
 
-def poly_to_pixels(polys, width, height, lon_range, lat_range):
+def poly_to_pixels(polys, width, height, lon_range, lat_range, fill_val):
     """
     Assign each pixel the index of the polygon containing its center.
     """
@@ -20,7 +20,7 @@ def poly_to_pixels(polys, width, height, lon_range, lat_range):
     lon_grid, lat_grid = np.meshgrid(lons, lats)
 
     ## fill pixels belonging to each polygon.
-    result = np.full((height, width), -1, dtype=np.int32)
+    result = np.full((height, width), fill_val, dtype=np.uint8)
     for i, polygon in enumerate(polys):
         mask = contains_xy(polygon, lon_grid, lat_grid)
         result[mask] = i
@@ -65,6 +65,7 @@ if __name__=="__main__":
         height=height,
         lon_range=lon_range,
         lat_range=lat_range,
+        fill_val=config.backend["region_map_form_fill_val"],
         ).astype(np.uint8)
 
     ny,nx = raster.shape
@@ -81,4 +82,8 @@ if __name__=="__main__":
     zgrp.create_group("region_map")
     zgrp["region_map"].create_array("raster", data=raster)
     zgrp["region_map"].create_array("borders", data=borders)
-    zgrp["region_map"].attrs.update({"width":nx, "height":ny});
+    zgrp["region_map"].attrs.update({
+        "width":nx,
+        "height":ny,
+        "mask_val":config.backend["region_map_form_fill_val"],
+        });

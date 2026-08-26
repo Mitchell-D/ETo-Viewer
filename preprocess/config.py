@@ -234,6 +234,7 @@ backend = {
         },
     "temporal_shard_spatial_shape":(96,96),
     "temporal_chunk_spatial_shape":(6,6),
+    "region_map_form_fill_val":255,
     "keep_pgroup_properties":{
         "states":["STATE"],
         "counties":["NAME", "STATE"],
