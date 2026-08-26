@@ -313,9 +313,10 @@ plot_config = {
         "layout":{
             "margin":{"top":10,"right":5,"bottom":160,"left":48},
             "y_label":"",
+            "y_range":(-0.0, 0.5),
             "item_width":180,
             "item_height":14,
-            "x_padding":0,
+            "x_padding":12,
             #"y_padding":0,
             },
         "legends":{

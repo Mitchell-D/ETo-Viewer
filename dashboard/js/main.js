@@ -431,6 +431,8 @@ const menu_forms_initialized = Promise.all([dom_ready, meta_loaded])
         });
     });
 
+
+
 const region_map_forms_ready = Promise.all([
     fetch(state.urls.region_map_raster).then(r => r.arrayBuffer()),
     fetch(state.urls.region_map_borders).then(r => r.arrayBuffer()),
@@ -556,6 +558,14 @@ const sliders_initialized = Promise.all([
         });
 
     });
+
+const plot_bounds_set = Promise.all([sliders_initialized, plots_loaded])
+    .then(() => {
+        MENU_CSLIDER.subscribe((cmin, cmax) => {
+            PLOT_STATS.set_y_bounds(cmin, cmax);
+        });
+        PLOT_STATS.set_y_bounds(state.sel.cmin, state.sel.cmax);
+    })
 
 const map_regions_bound = Promise.all([map_started, menu_forms_initialized])
     .then(() => {
@@ -766,7 +776,7 @@ async function new_active_rgb() {
 }
 
 const render_ready = Promise.all([
-    bind_array_requests, vtimes_loaded, map_regions_bound
+    bind_array_requests, vtimes_loaded, map_regions_bound, plots_loaded,
 ])
     .then(() => {
         BUFFER_SLIDER.subscribe(async v => {

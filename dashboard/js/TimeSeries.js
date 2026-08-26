@@ -442,6 +442,19 @@ export class TimeSeries {
         this.svg = d3.select(this.container).append("svg");
         this.root = this.svg.append("g");
 
+        // Generate a unique ID for this instance's clip path
+        const cid = this.container.id
+            || Math.random().toString(36).substr(2, 9);
+        this.clip_id = `clip-${cid}`;
+
+        // Append SVG defs and a clipPath containing a bounding rectangle
+        const defs = this.svg.append("defs");
+        this.clip_rect = defs.append("clipPath")
+            .attr("id", this.clip_id)
+            .append("rect")
+            .attr("x", 0)
+            .attr("y", 0);
+
         // declare scale generators
         this.scale_x = d3.scaleTime();
         this.scale_y = d3.scaleLinear();
@@ -462,6 +475,8 @@ export class TimeSeries {
             cur: this.root.append("g"),
         };
 
+        // Apply the clipping path mask to the plot elements group
+        this.grp.elements.attr("clip-path", `url(#${this.clip_id})`);
         this.grp.cur.append("line")
             .classed("cur-line", true)
             .attr("y1", this.scale_y.range()[0])
@@ -535,6 +550,18 @@ export class TimeSeries {
         this._draw_axes();
     }
 
+    set_y_bounds(ymin, ymax) {
+        this.y_bounds = [ymin, ymax];
+        this.scale_y.domain([ymin, ymax]).nice();
+        this.refresh();
+    }
+
+    clear_y_bounds() {
+        this.y_bounds = null;
+        this._calc_domain_bounds();
+        this.refresh();
+    }
+
     /**
     modify the x and y data scales after a buffer update
     */
@@ -554,6 +581,15 @@ export class TimeSeries {
             this.scale_x.domain([new Date(tmin-tpad), new Date(tmax+tpad)]);
         } else {
             this.scale_x.domain([dmin, dmax]);
+        }
+
+        if (this.y_bounds !== null) {
+            return;
+        }
+
+        if (this.cfg.layout.y_range) {
+            this.scale_y.domain(this.cfg.layout.y_range).nice();
+            return
         }
 
         // determine extreme y axis minimum and maximum given the data
@@ -633,6 +669,9 @@ export class TimeSeries {
 
         this.svg.attr("viewBox", `0 0 ${r.width} ${r.height}`);
         this.root.attr("transform", `translate(${mgn.left},${mgn.top})`);
+
+        // Update clipping area to strictly match the inner plot dimensions
+        this.clip_rect.attr("width", this.width).attr("height", this.height);
 
         this.scale_x.range([0, this.width]);
         this.scale_y.range([this.height, 0]);
