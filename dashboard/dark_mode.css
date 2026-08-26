@@ -1,6 +1,6 @@
 :root {
     /*--text-color:#d2d2c8;*/
-    --text-color:#6ecc86;
+    --text-color:#e98f7b;
     /*--background-color:#101b26;*/
     --background-color:#28282b;
     --border-color:#0aa356;
@@ -82,7 +82,8 @@ svg line {
 }
 
 svg .cur-line {
-    stroke:#a1c9b9;
+    stroke:#c7d1cd;
+    opacity:.2;
 }
 
 svg path {

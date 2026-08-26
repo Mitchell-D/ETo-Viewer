@@ -203,16 +203,16 @@ frontend = {
             "p75-25":"magma",
             },
         "eto":{
-            "min":"afmhot",
-            "max":"afmhot",
-            "mean":"afmhot",
+            "min":"cmr.chroma",
+            "max":"cmr.chroma",
+            "mean":"cmr.chroma",
             "stddev":"nipy_spectral",
-            "p10":"afmhot",
-            "p25":"afmhot",
-            "p25":"afmhot",
-            "p50":"afmhot",
-            "p75":"afmhot",
-            "p90":"afmhot",
+            "p10":"cmr.chroma",
+            "p25":"cmr.chroma",
+            "p25":"cmr.chroma",
+            "p50":"cmr.chroma",
+            "p75":"cmr.chroma",
+            "p90":"cmr.chroma",
             "max-min":"nipy_spectral",
             "p95-05":"nipy_spectral",
             "p90-10":"nipy_spectral",
@@ -246,12 +246,15 @@ cmap = {
         #"viridis_r",
         #"gnuplot",
         "gist_rainbow",
+        "jet",
+        "hsv",
         #"gist_earth",
         #"gist_earth_r",
         "coolwarm",
         #"coolwarm_r",
         "cmr.chroma",
         "cmr.pride",
+        "cmr.savanna",
         #"cmr.rainforest",
         #"cmr.rainforest_r",
         "nipy_spectral",
@@ -302,14 +305,18 @@ custom_cmaps = {
 plot_config = {
     "stats":{
         "order":[
-            "cur-p10-p90", "cur-p25-p75", "cur-minmax",
-            "cur-stddev", "cur-mean",
+            "whisker-min", "whisker-max",
+            "whisker-p10", "whisker-p90",
+            "box-p25-p75",
+            "surround-stddev", "line-mean",
             ],
         "layout":{
             "margin":{"top":10,"right":5,"bottom":160,"left":48},
             "y_label":"",
             "item_width":180,
             "item_height":14,
+            "x_padding":0,
+            #"y_padding":0,
             },
         "legends":{
             "cur":{
@@ -321,69 +328,93 @@ plot_config = {
                 },
             },
         "elements":{
-            "cur-mean":{
+            "line-mean":{
                 "name":"Average",
                 "plot_type":"line",
                 "legend":"cur",
 
-                "width":"2",
+                "width":2,
                 "color":"#ff6161",
                 "show":True,
 
                 "data":"mean",
                 },
-            "cur-stddev":{
-                "name":"Standard Dev",
-                "plot_type":"surround",
-                "legend":"cur",
-
-                "width":"1",
-                "color":"#ed7979",
-                "dashes":"5,5,2",
-                "opacity":0,
-                "area_opacity":.3,
-                "show":False,
-
-                "data":{"center":"mean", "spread":"stddev"},
-                },
-            "cur-minmax":{
-                "name":"Min/Max",
-                "plot_type":"field",
-                "legend":"cur",
-
-                "width":"1",
-                "color":"#c4bbbb",
-                "area_opacity":0,
-                "show":False,
-
-                "data":{"lower":"min", "upper":"max"},
-                },
-            "cur-p10-p90":{
-                "name":"10-90th pctl",
-                "plot_type":"field",
-                "legend":"cur",
-
-                "width":"2",
-                "color":"#f5b073",
-                "opacity":0.,
-                "area_opacity":.25,
-                "show":True,
-
-                "data":{"lower":"p10", "upper":"p90"},
-                },
-            "cur-p25-p75":{
+            "box-p25-p75":{
                 "name":"25-75th pctl",
-                "plot_type":"field",
+                "plot_type":"box",
                 "legend":"cur",
 
-                "width":"2",
-                "color":"#05a839",
-                "dashes":"5,5,2",
-                "opacity":.6,
-                "area_opacity":.25,
+                "width":1.5,
+                "color":"#6ba7db",
+                "opacity":1.,
+                "box_width":12,
+                "area_opacity":1.,
                 "show":True,
 
                 "data":{"lower":"p25", "upper":"p75"},
+                },
+            "whisker-p10":{
+                "name":"10th pctl",
+                "plot_type":"whisker",
+                "legend":"cur",
+
+                "width":2,
+                "color":"#f5b073",
+                "cap_width":12,
+                "opacity":1.,
+                "show":True,
+
+                "data":{"origin":"mean", "extent":"p10"},
+                },
+            "whisker-p90":{
+                "name":"90th pctl",
+                "plot_type":"whisker",
+                "legend":"cur",
+
+                "width":2,
+                "color":"#f5b073",
+                "cap_width":12,
+                "opacity":1.,
+                "show":True,
+
+                "data":{"origin":"mean", "extent":"p90"},
+                },
+            #"surround-stddev":{
+            #    "name":"Standard Dev",
+            #    "plot_type":"surround",
+            #    "legend":"cur",
+            #    "width":1,
+            #    "color":"#e88e8e",
+            #    "opacity":.7,
+            #    "area_opacity":.7,
+            #    "show":False,
+            #    "data":{"center":"mean", "spread":"stddev"},
+            #    },
+            "whisker-min":{
+                "name":"Min",
+                "plot_type":"whisker",
+                "legend":"cur",
+
+                "width":1,
+                "cap_width":7,
+                "color":"#b3b3b3",
+                "dashes":"1,1",
+                "show":True,
+
+                "data":{"origin":"mean", "extent":"min"},
+                },
+            "whisker-max":{
+                "name":"Max",
+                "plot_type":"whisker",
+                "legend":"cur",
+
+                "width":1,
+                "cap_width":7,
+                "color":"#b3b3b3",
+                "dashes":"1,1",
+                "show":True,
+
+                "data":{"origin":"mean", "extent":"max"},
                 },
             },
         },

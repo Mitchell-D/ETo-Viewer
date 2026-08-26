@@ -102,6 +102,63 @@ class PathBuilder {
         // close the path at the end
         return d + "Z";
     }
+
+// generate vertical whiskers with a horizontal cap centered on each timestep
+    whiskers(dates, origin, extent, capWidth = 8) {
+        const f_origin = typeof origin === "function" ? origin : i=>origin[i];
+        const f_extent = typeof extent === "function" ? extent : i=>extent[i];
+        const halfCap = capWidth / 2;
+        let d = "";
+
+        for (let i = 0; i < dates.length; i++) {
+            const vo = f_origin(i);
+            const ve = f_extent(i);
+
+            if (!Number.isFinite(vo) || !Number.isFinite(ve)) {
+                continue;
+            }
+
+            const x = this.x(dates[i]);
+            const yOrigin = this.y(vo);
+            const yExtent = this.y(ve);
+
+            // vertical line stem
+            d += `M${x},${yOrigin}L${x},${yExtent}`;
+            // horizontal cap line
+            if (capWidth > 0) {
+                d += `M${x - halfCap},${yExtent}H${x + halfCap}`;
+            }
+        }
+
+        return d;
+    }
+
+    // generate centered rectangles spanning lower to upper at each timestep
+    boxes(dates, lower, upper, boxWidth = 10) {
+        const f_lower = typeof lower === "function" ? lower : i => lower[i];
+        const f_upper = typeof upper === "function" ? upper : i => upper[i];
+        const halfBox = boxWidth / 2;
+        let d = "";
+
+        for (let i = 0; i < dates.length; i++) {
+            const vl = f_lower(i);
+            const vu = f_upper(i);
+
+            if (!Number.isFinite(vl) || !Number.isFinite(vu)) continue;
+
+            const x = this.x(dates[i]);
+            const ylow = this.y(vl);
+            const yhigh = this.y(vu);
+
+            const x1 = x - halfBox;
+            const x2 = x + halfBox;
+
+            // closed rectangular path
+            d += `M${x1},${ylow}L${x2},${ylow}L${x2},${yhigh}L${x1},${yhigh}Z`;
+        }
+
+        return d;
+    }
 }
 
 /**
@@ -196,8 +253,56 @@ class LineRenderer {
                         .attr("stroke-opacity", d.show ? d.opacity : 0)
                         .attr("fill-opacity", d.show ? d.area_opacity : 0)
                         .attr( "d", this.pb.band(
-                            dates, i => c[i] + s[i], i => c[i] - s[i])
-                        );
+                            dates, i => { c[i] + s[i], i => c[i] - s[i] }
+                        ));
+                    break;
+                }
+
+                // data:{origin:str, extent:str}
+                case "whisker": {
+                    const req_props = ["origin", "extent"];
+                    if (
+                        !d.data ||
+                        !req_props.every(p => Object.hasOwn(d.data, p))
+                    ) {
+                        throw new Error(
+                            `whisker plots must have data: ${req_props}`);
+                    }
+                    const orig = buffer.data[d.data.origin];
+                    const ext = buffer.data[d.data.extent];
+                    const cw = d.cap_width ?? 8;
+
+                    el.attr("fill", "none")
+                        .attr("stroke", d.color)
+                        .attr("stroke-width", d.width ?? 2)
+                        .attr("stroke-dasharray", d.dashes ?? null)
+                        .attr("stroke-opacity", d.show ? (d.opacity ?? 1) : 0)
+                        .attr("d", this.pb.whiskers(dates, orig, ext, cw));
+                    break;
+                }
+
+                // data:{lower:str, upper:str}
+                case "box": {
+                    const req_props = ["lower", "upper"];
+                    if (
+                        !d.data ||
+                        !req_props.every(p => Object.hasOwn(d.data, p))
+                    ) {
+                        throw new Error(
+                            `box plots must have data: ${req_props}`);
+                    }
+                    const lo = buffer.data[d.data.lower];
+                    const hi = buffer.data[d.data.upper];
+                    const bw = d.box_width ?? 10;
+
+                    el.attr("fill", d.color)
+                        .attr("stroke", d.color ?? "none")
+                        .attr("stroke-width", d.width ?? 2)
+                        .attr("stroke-dasharray", d.dashes ?? null)
+                        .attr("stroke-opacity", d.show ? (d.opacity ?? 1) : 0)
+                        .attr("fill-opacity",
+                            d.show ? (d.area_opacity ?? 0.25) : 0)
+                        .attr("d", this.pb.boxes(dates, lo, hi, bw));
                     break;
                 }
             }
@@ -361,8 +466,7 @@ export class TimeSeries {
             .classed("cur-line", true)
             .attr("y1", this.scale_y.range()[0])
             .attr("y2", this.scale_y.range()[1])
-            .attr("stroke-width", 1.5)
-            .style("opacity", 1);
+            .attr("stroke-width", 1.5);
 
         // declare a PathBuilder that can generate arbitrary lines and bands
         this.pb = new PathBuilder(this.scale_x, this.scale_y);
@@ -411,7 +515,6 @@ export class TimeSeries {
         this.grp.cur.select(".cur-line")
             .attr("x1", x)
             .attr("x2", x)
-            .style("opacity", 1);
     }
 
     // re-render the lines, legend, and axes
@@ -436,8 +539,22 @@ export class TimeSeries {
     modify the x and y data scales after a buffer update
     */
     _calc_domain_bounds() {
+        if (!this.buf.dates || this.buf.dates.length === 0) return;
+
         // set the x domain according to the dates
-        this.scale_x.domain(d3.extent(this.buf.dates));
+        const [dmin, dmax] = d3.extent(this.buf.dates);
+        const xpad = this.cfg.layout.x_padding
+        const tmin = dmin.getTime();
+        const tmax = dmax.getTime();
+        const timeSpan = tmax - tmin;
+
+        // expand time domain so dmin -> xpad and dmax -> (width - xpad)
+        if (xpad > 0 && this.width > 2 * xpad && timeSpan > 0) {
+            const tpad = (xpad * timeSpan) / (this.width - 2 * xpad);
+            this.scale_x.domain([new Date(tmin-tpad), new Date(tmax+tpad)]);
+        } else {
+            this.scale_x.domain([dmin, dmax]);
+        }
 
         // determine extreme y axis minimum and maximum given the data
         let min = Infinity;
@@ -468,6 +585,12 @@ export class TimeSeries {
                     cv + this.buf.data[el.data.spread][ix]
                 }));
                 //scan(this.buf.data[el.data.spread]);
+            } else if (el.plot_type === "whisker") {
+                scan(this.buf.data[el.data.origin]);
+                scan(this.buf.data[el.data.extent]);
+            } else if (el.plot_type === "box") {
+                scan(this.buf.data[el.data.lower]);
+                scan(this.buf.data[el.data.upper]);
             } else {
                 throw new Error("unrecognized plot type:", el.plot_type)
             }
