@@ -107,10 +107,10 @@ body {
 }
 
 .slider-input-min{
-    width:60%;
+    width:100px;
 }
 .slider-input-max{
-    width:60%;
+    width:100px;
 }
 .bounds-input-container{
     padding:0;
