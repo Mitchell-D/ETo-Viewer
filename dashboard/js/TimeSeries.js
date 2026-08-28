@@ -462,18 +462,24 @@ export class TimeSeries {
         // declare axis objects and grid lines
         this.axis_x = d3.axisBottom(this.scale_x);
         this.axis_y = d3.axisLeft(this.scale_y);
-        this.axgrid = d3.axisLeft(this.scale_y).tickSize(0).tickFormat("");
+        this.spine_y = d3.axisLeft(this.scale_y).tickSize(0).tickFormat("");
 
 
+        // make top-level groups for time series plot components
         this.grp = {
             x: this.root.append("g"),
             y: this.root.append("g"),
             grid: this.root.append("g"),
             elements: this.root.append("g"),
-            lgd_daily: this.root.append("g"),
-            lgd_climo: this.root.append("g"),
             cur: this.root.append("g"),
         };
+        /*
+        this.grp.x.classed("plot-axis-x", true),
+        this.grp.y.classed("plot-axis-y", true),
+        this.grp.grid.classed("plot-grid", true),
+        this.grp.elements.classed("plot-elements", true),
+        this.grp.cur.classed("plot-cur-line", true),
+        */
 
         // Apply the clipping path mask to the plot elements group
         this.grp.elements.attr("clip-path", `url(#${this.clip_id})`);
@@ -494,6 +500,7 @@ export class TimeSeries {
         for (const l of this.cfg.legends) {
             // add a new group for this legend
             this.grp["legend_"+l.legend_key] = this.root.append("g");
+            this.grp["legend_"+l.legend_key].classed("plot-legend", true);
             //
             this.legends.push(
                 new LegendRenderer({
@@ -649,11 +656,11 @@ export class TimeSeries {
             .attr("dy", ".15em")
             .attr("transform", "rotate(-45)");
         this.grp.y.call(this.axis_y);
+        this.grp.grid.call(this.spine_y);
         this.grp.cur.select(".cur-line")
             .attr("y1", this.scale_y.range()[0])
             .attr("y2", this.scale_y.range()[1]);
 
-        this.grp.grid.call(this.axgrid);
     }
 
     /**
