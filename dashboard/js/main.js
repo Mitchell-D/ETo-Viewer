@@ -32,6 +32,8 @@ const state = {
         buffer_slider_container:"main_container_buffer_slider",
         vector_toggle_container:"main_container_vector_toggle",
         fig_stats_container:"fig_stats_container",
+        fig_stats_label_variable:"fig_stats_label_variable",
+        fig_stats_label_location:"fig_stats_label_location",
 
         cmap_slider_container_id:"cmap_slider_row",
 
@@ -175,8 +177,9 @@ function update_main_labels() {
     const tmf = document.getElementById(state.dom.text_main_feat);
     const tmd = document.getElementById(state.dom.text_main_date);
 
-    tmf.textContent = state.long_labels.feats[state.sel.feat]
-        + " " + state.short_labels.metrics[state.sel.metric_raster];
+    tmf.innerHTML = state.long_labels.feats[state.sel.feat]
+        + " " + state.short_labels.metrics[state.sel.metric_raster]
+        + `<br/>(${state.long_labels.units[state.sel.feat]})`;
     if (state.sel.vtime !== null) {
         tmd.textContent = fmt_date_string(state.sel.vtime);
     }
@@ -634,12 +637,30 @@ const pgroups_active = Promise.all([map_regions_bound,menu_forms_initialized])
             console.log("map click:", click);
             let u = `/${state.sel.region}/${state.sel.feat}/`+state.sel.itime;
             let p = null;
+            const lv = document.getElementById(
+                state.dom.fig_stats_label_variable);
+            const ll = document.getElementById(
+                state.dom.fig_stats_label_location);
+            lv.innerHTML = state.short_labels.feats[state.sel.feat]
+                + ` (${state.short_labels.metrics[state.sel.metric_raster]})`;
             if (click.type === "vector") {
                 u += `/${state.sel.pgroup}/${click.UID}`;
                 p = fetch(state.urls.polygon + u).then(r => r.json());
+                if (state.sel.pgroup === "states") {
+                    ll.innerHTML = click.props.STATE
+                        .replace(/\b\w/g, c => c.toUpperCase());
+                } else if (state.sel.pgroup === "counties") {
+                    const cty_str = click.props.NAME
+                    const state_str = click.props.STATE
+                        .replace(/\b\w/g, c => c.toUpperCase());
+                    ll.innerHTML = `${cty_str}, ${state_str}`;
+                }
             } else if (click.type === "pixel") {
                 u += `/${click.pxy}/${click.pxx}`;
                 p = fetch(state.urls.pixel + u).then(r => r.json());
+                const short_lat = `${click.lat}`.slice(0, 8);
+                const short_lon = `${click.lon}`.slice(0, 8);
+                ll.innerHTML = `(${short_lat}, ${short_lon})`;
             }
             Promise.all([p, plots_loaded]).then(r => {
                 const stats = r[0];
@@ -654,6 +675,7 @@ const pgroups_active = Promise.all([map_regions_bound,menu_forms_initialized])
                     data:new_lines,
                 });
             });
+
         });
     })
     .then(() => {

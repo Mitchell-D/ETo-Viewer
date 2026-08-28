@@ -24,6 +24,7 @@ export class Map {
         click_scope,
         pixel_marker_anchor=null,
         pixel_marker_layers=[],
+        drag_cooldown=50, // ms
     }) {
         this.#ready = new Promise((resolve, reject) => {
             const tmp_ctr = [-92.195082, 37.104743];
@@ -91,6 +92,49 @@ export class Map {
             this.subscriptions = [];
         });
 
+        // right click and drag handling
+        this.drag_cooldown = drag_cooldown;
+        this.drag_active = false;
+        this._last_drag_click = null;
+        this._drag_timer = 0;
+        this.#map.dragRotate.disable();
+        this.#map.on("mousedown", (e) => {
+            if (e.originalEvent.button === 2) {
+                this.drag_active = true;
+                this.#map.fire("click", e);
+            }
+        });
+        this.#map.on("mousemove", (e) => {
+            if (!this.drag_active) return;
+
+            const elapsed = performance.now() - this._last_drag_click;
+            if (elapsed >= this.drag_cooldown) {
+                this.#map.fire("click", e);
+                return;
+            }
+
+            // currently inside the cooldown; schedule for on expiration
+            if (this._drag_timer === null) {
+                const delay = this.drag_cooldown - elapsed;
+                this._drag_timer = setTimeout(() => {
+                    this._drag_timer = null;
+                    this._last_drag_click = performance.now();
+                    this.#map.fire("click", e);
+                }, delay);
+            }
+        });
+        this.#map.on("mouseup", (e) => {
+            if (e.originalEvent.button === 2) {
+                this.drag_active = false;
+            }
+        });
+
+        // stop browser context menu from popping up
+        this.#map.getCanvas().addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+        });
+
+        // set the pixel source and layers
         this.#ready.then(() => {
             if (!this.pixel_marker_anchor) return;
             // make an empty source for the pixel click location

@@ -12,9 +12,6 @@
       <link rel="shortcut icon" href="/images/favicon.ico" />
 
       <link rel="stylesheet" href="pkgs/bootstrap-5.0.2-dist/css/bootstrap.min.css"></link>
-      <link rel="stylesheet" href="pkgs/font-awesome-all.min.css"></link>
-      <!--<link rel="stylesheet" href="pkgs/leaflet/leaflet.css"></link>-->
-      <!--<script type="text/javascript" src="pkgs/leaflet/leaflet.js"></script>-->
       <script src="pkgs/d3.min.js"></script>
       <script type="text/javascript" src="pkgs/maplibre-gl.js"></script>
       <link rel="stylesheet" href="pkgs/maplibre-gl.css"></link>
@@ -35,8 +32,11 @@
 
     <main class="container-fluid flex-grow-1 d-flex flex-column">
       <div class="row flex-grow-1">
+
+        <!-- left column -->
         <div class="col-md-3 side-column">
 
+          <!-- region selection -->
           <div class="row" id="menu_region_row">
             <div class="col menu-button-column">
               <div class="row justify-content-center">
@@ -53,11 +53,12 @@
             </div>
           </div>
 
+          <!-- data feat selection -->
           <div class="row" id="menu_feat_row">
             <div class="col menu-button-column">
               <hr class="menu-rule"/>
               <div class="row justify-content-center">
-                <p class="menu-section-title">Data Feature</p>
+                <p class="menu-section-title">Variable</p>
               </div>
               <div class="row">
                 <div class="col" id="menu_container_feat"></div>
@@ -65,11 +66,12 @@
             </div>
           </div>
 
+          <!-- ensemble metric selection -->
           <div class="row" id="menu_metric_row">
             <div class="col menu-button-column">
               <hr class="menu-rule"/>
               <div class="row justify-content-center">
-                <p class="menu-section-title">Ensemble Metric</p>
+                <p class="menu-section-title">Ensemble Statistic</p>
               </div>
               <div class="row">
                 <div class="col">
@@ -96,21 +98,19 @@
             </div>
           </div>
 
+          <!-- data bounds selection -->
           <div class="row" id="menu_cmap_row">
             <div class="col-md-12 menu-button-column">
               <hr class="menu-rule"/>
               <div class="row justify-content-center">
-                <p class="menu-section-title">Color Map + Bounds</p>
+                <p class="menu-section-title">Data Bounds</p>
               </div>
-
-              <div class="row dropdown">
-                <button class="btn btn-primary dropdown-toggle dropdown-button menu-button" type="button" id="dd_button_cmap" data-bs-toggle="dropdown" aria-expanded="false">
-                </button>
-                <ul id="dd_cmap_name" class="dropdown-menu" aria-labelledby="dd_button_cmap"></ul>
-              </div>
-
               <div class="row" id="cmap_slider_row">
+
+                <!-- slider form -->
                 <div class="slider-container">
+
+                  <!-- slider bar -->
                   <div class="row" style="display:none;">
                     <div class="col-md-6 text-center slider-label-container">
                         Min: <span class="slider-label slider-label-min"></span>
@@ -119,7 +119,6 @@
                         Max: <span class="slider-label slider-label-max"></span>
                     </div>
                   </div>
-
                   <div class="row">
                     <div class="slider-track">
                       <div class="slider-range"></div>
@@ -128,6 +127,7 @@
                     </div>
                   </div>
 
+                  <!-- slider text input -->
                   <div class="row">
                     <div class="col-6 text-center bounds-input-container">
                       <div class="row justify-content-center">
@@ -146,54 +146,30 @@
                       </div>
                     </div>
                   </div>
+
                 </div>
               </div>
             </div>
           </div>
-
-          <!--
-          <div class="row" id="menu_pgroup_row">
-            <hr class="menu-rule"/>
-            <div class="col">
-              <div class="row justify-content-center">
-                <p class="menu-section-title">Polygon Set</p>
-              </div>
-              <div class="row">
-                <div class="col menu-button-column" id="menu_container_pgroup"></div>
-              </div>
-            </div>
-          </div>
-          -->
-
         </div>
 
+        <!-- center column -->
         <div class="col-md-5" id="center_col">
           <div class="row">
             <div class="col-md-12">
+
+              <!-- itime selection -->
               <div class="row">
                 <p class="menu-section-title">GEFS Forecast Run</p>
               </div>
               <div class="row">
                   <div id="menu_container_itime"></div>
               </div>
-              <div class="row" id="main_canvas_row">
+
+              <!-- main map -->
+              <div class="row">
                 <div class="flex-shrink-0" id="cbar_container">
                 </div>
-                <!--
-                <div class="d-inline-block" id="cbar_container">
-                  <div class="row h-100">
-                    <div class="d-inline-block" id="cbar_axis_col">
-                      <div id="cbar_axis_container">
-                        <svg id="cbar_axis"></svg>
-                      </div>
-                    </div>
-                    <div class="d-inline-block" id="cbar_raster_col">
-                      <div id="cbar_raster_container"></div>
-                    </div>
-                  </div>
-                </div>
-                -->
-                <!--<div class="d-inline-block" id="map_container">-->
                 <div class="flex-grow-1" id="map_container">
                   <div id="main_map_container">
                     <p id="main_header_text">---</p>
@@ -201,33 +177,54 @@
                   </div>
                 </div>
               </div>
-              <!--
-              <div class="row justify-content-center">
-                <h6 id="main_label_active" class="text-center"></h6>
-              </div>
-              -->
+
+              <!-- buffer slider -->
               <div class="row justify-content-center">
                 <div id="main_container_buffer_slider" class="buffer-slider-container"></div>
               </div>
+
+              <!-- cosmetic vector selection -->
               <div class="row justify-content-center">
                 <div class="row d-flex justify-content-center" id="main_container_vector_toggle" ></div>
               </div>
+
             </div>
           </div>
-          <!--<div class="row" id="fig_daily_container"></div>-->
-          <!--<div class="row" id="fig_anom_container"></div>-->
         </div>
 
+        <!-- right column -->
         <div class="col-md-4 side-column">
           <div class="row" id="menu_cmap_row">
             <div class="col-md-12 menu-button-column">
+
+              <!-- color map selection -->
+              <div class="row justify-content-center">
+                <p class="menu-section-title">Color Map</p>
+              <div class="row dropdown">
+              </div>
+                <button class="btn btn-primary dropdown-toggle dropdown-button menu-button" type="button" id="dd_button_cmap" data-bs-toggle="dropdown" aria-expanded="false">
+                </button>
+                <ul id="dd_cmap_name" class="dropdown-menu" aria-labelledby="dd_button_cmap"></ul>
+              </div>
+
+              <!-- pgroup selection -->
+              <hr class="menu-rule"/>
               <div class="row justify-content-center">
                 <p class="menu-section-title">Plot Scope</p>
               </div>
               <div class="row">
                 <div class="col" id="menu_container_pgroup"></div>
               </div>
+
+              <!-- statistics figure -->
+              <div class="row" id="fig_stats_labels">
+                <div id="fig_stats_label_container">
+                  <p class="fig-label" id="fig_stats_label_variable"></p>
+                  <p class="fig-label" id="fig_stats_label_location"></p>
+                </div>
+              </div>
               <div class="row" id="fig_stats_container"></div>
+
             </div>
           </div>
         </div>
@@ -310,10 +307,6 @@
       </div>
     </template>
 
-    <script type="text/javascript" src="pkgs/jquery.min.js"></script>
-    <script type="text/javascript" src="pkgs/moment.min.js"></script>
-    <script type="text/javascript" src="pkgs/daterangepicker.min.js"></script>
-    <link rel="stylesheet" type="text/css" href="pkgs/daterangepicker.css" />
     <script type="module" src="js/main.js" async></script>
     <script src="pkgs/popper.min.js"></script>
     <script src="pkgs/bootstrap-5.0.2-dist/js/bootstrap.bundle.min.js"></script>

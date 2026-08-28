@@ -7,12 +7,12 @@ generate multiple types of svg paths from arrays, supporting:
 class PathBuilder {
     // declare with d3js axis scale generators
     constructor(scale_x, scale_y) {
-        this.x = scale_x;
-        this.y = scale_y;
+        this.xscale = scale_x;
+        this.yscale = scale_y;
     }
 
     // Generate an svg line that may be discontinuous given values
-    line(dates, values=[]) {
+    line(xvals, values=[]) {
         let d = "";
         let drawing = false;
         for (let i = 0; i < values.length; i++) {
@@ -24,8 +24,8 @@ class PathBuilder {
             }
 
             // use the sacle to determine the new svg coordinates
-            const x = this.x(dates[i]);
-            const y = this.y(v);
+            const x = this.xscale(xvals[i]);
+            const y = this.yscale(v);
             if (!drawing) {
                 // move to the missing point but don't draw a line to it
                 d += `M${x},${y}`;
@@ -40,8 +40,8 @@ class PathBuilder {
     }
 
     // render a filled polygon path for the provided data arrays or generators
-    band(dates, upper, lower) {
-        const ntimes = dates.length;
+    band(xvals, upper, lower) {
+        const ntimes = xvals.length;
 
         let d = "";
         let start = -1;
@@ -70,7 +70,7 @@ class PathBuilder {
             // here, the current value must be invalid. Take the current string
             // of contiguous valid data points and make a segment for it.
             if (start >= 0) {
-                d += this._segment(dates, start, i, f_upper, f_lower);
+                d += this._segment(xvals, start, i, f_upper, f_lower);
                 start = -1;
             }
         }
@@ -79,14 +79,14 @@ class PathBuilder {
 
     // given a date range and upper and lower data point generators, build
     // a closed polygon for the field between f_upper and f_lower
-    _segment(dates, begin, end, f_upper, f_lower) {
+    _segment(xvals, begin, end, f_upper, f_lower) {
 
         let d = "";
 
         // iterate over upper data points first
         for (let i = begin; i < end; i++) {
-            const x = this.x(dates[i]);
-            const y = this.y(f_upper(i));
+            const x = this.xscale(xvals[i]);
+            const y = this.yscale(f_upper(i));
             // move to the first data point, then draw lines connecting
             // the subsequent valid data points
             d += (i === begin) ? `M${x},${y}` : `L${x},${y}`;
@@ -94,8 +94,8 @@ class PathBuilder {
 
         // drop down and
         for (let i = end - 1; i >= begin; i--) {
-            const x = this.x(dates[i]);
-            const y = this.y(f_lower(i));
+            const x = this.xscale(xvals[i]);
+            const y = this.yscale(f_lower(i));
             d += `L${x},${y}`;
         }
 
@@ -103,14 +103,14 @@ class PathBuilder {
         return d + "Z";
     }
 
-// generate vertical whiskers with a horizontal cap centered on each timestep
-    whiskers(dates, origin, extent, capWidth = 8) {
+    // vertical whiskers with a horizontal cap centered on each timestep
+    whiskers(xvals, origin, extent, capWidth = 8) {
         const f_origin = typeof origin === "function" ? origin : i=>origin[i];
         const f_extent = typeof extent === "function" ? extent : i=>extent[i];
         const halfCap = capWidth / 2;
         let d = "";
 
-        for (let i = 0; i < dates.length; i++) {
+        for (let i = 0; i < xvals.length; i++) {
             const vo = f_origin(i);
             const ve = f_extent(i);
 
@@ -118,9 +118,9 @@ class PathBuilder {
                 continue;
             }
 
-            const x = this.x(dates[i]);
-            const yOrigin = this.y(vo);
-            const yExtent = this.y(ve);
+            const x = this.xscale(xvals[i]);
+            const yOrigin = this.yscale(vo);
+            const yExtent = this.yscale(ve);
 
             // vertical line stem
             d += `M${x},${yOrigin}L${x},${yExtent}`;
@@ -134,21 +134,21 @@ class PathBuilder {
     }
 
     // generate centered rectangles spanning lower to upper at each timestep
-    boxes(dates, lower, upper, boxWidth = 10) {
+    boxes(xvals, lower, upper, boxWidth = 10) {
         const f_lower = typeof lower === "function" ? lower : i => lower[i];
         const f_upper = typeof upper === "function" ? upper : i => upper[i];
         const halfBox = boxWidth / 2;
         let d = "";
 
-        for (let i = 0; i < dates.length; i++) {
+        for (let i = 0; i < xvals.length; i++) {
             const vl = f_lower(i);
             const vu = f_upper(i);
 
             if (!Number.isFinite(vl) || !Number.isFinite(vu)) continue;
 
-            const x = this.x(dates[i]);
-            const ylow = this.y(vl);
-            const yhigh = this.y(vu);
+            const x = this.xscale(xvals[i]);
+            const ylow = this.yscale(vl);
+            const yhigh = this.yscale(vu);
 
             const x1 = x - halfBox;
             const x2 = x + halfBox;
@@ -664,6 +664,7 @@ export class TimeSeries {
         const r = this.container.getBoundingClientRect();
 
         const mgn = this.cfg.layout.margin
+        // width and height of the plot frame
         this.width = r.width - mgn.left - mgn.right;
         this.height = r.height - mgn.top - mgn.bottom;
 
