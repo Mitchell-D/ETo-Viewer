@@ -105,6 +105,8 @@ def extract_region_eto(
     tsss = config.backend["temporal_shard_spatial_shape"]
     tcss = config.backend["temporal_chunk_spatial_shape"]
 
+    dstr = date.strftime("%Y%m%d")
+
     ## load the relevant information from the zarr store
     zgrp = zarr.open(zarr_out_path, path=zarr_region_path, mode="a")
     pslices = zgrp.attrs["pgroup_slices"]
@@ -218,16 +220,19 @@ def extract_region_eto(
         zgrp[f"/pgroups/{pk}/data/{dstr}/eto"][...] = parr
 
 if __name__=="__main__":
-    source_dir = Path("/rhome/mdodson/ETo-Viewer/data/source")
-    out_zarr_dir = Path("/rhome/mdodson/ETo-Viewer/data/store")
-    vector_dir = Path("/rhome/mdodson/ETo-Viewer/data/vector")
+    #source_dir = Path("/rhome/mdodson/ETo-Viewer/data/source")
+    #out_zarr_dir = Path("/rhome/mdodson/ETo-Viewer/data/store")
+    #vector_dir = Path("/rhome/mdodson/ETo-Viewer/data/vector")
+    out_zarr_dir = Path("data/store")
+    source_dir = Path("data/source")
+    vector_dir = Path("data/vector")
 
-    out_zarr_path = out_zarr_dir.joinpath("eto-forecast_new.zarr")
+    out_zarr_path = out_zarr_dir.joinpath("eto-forecast.zarr")
     domain_template = "domain_{domain}.geojson"
     source_template = "eto_forecast_gridmet_deg04_%Y-%m-%dT00.nc"
 
-    date_start = date(2026, 8, 17)
-    date_end = date(2026, 8, 17)
+    date_start = date(2026, 8, 27)
+    date_end = date(2026, 8, 27)
 
     overwrite_existing = True
 

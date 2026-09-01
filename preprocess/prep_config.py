@@ -61,7 +61,7 @@ if __name__=="__main__":
 
     load_meta = True
     load_cmaps = True
-    load_pgroups = False
+    load_pgroups = True
     load_domains = False
 
     if load_meta:

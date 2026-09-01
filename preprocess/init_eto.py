@@ -282,11 +282,11 @@ def polygon_fraction_subgrids(geo_ref_src, m_valid, multipolygon,
     return fractions, slices
 
 if __name__=="__main__":
-    source_dir = Path("/rhome/mdodson/ETo-Viewer/data/source")
-    out_zarr_dir = Path("/rhome/mdodson/ETo-Viewer/data/store")
-    vector_dir = Path("/rhome/mdodson/ETo-Viewer/data/vector")
+    out_zarr_dir = Path("data/store")
+    source_dir = Path("data/source")
+    vector_dir = Path("data/vector")
 
-    out_zarr_path = out_zarr_dir.joinpath("eto-forecast_new.zarr")
+    out_zarr_path = out_zarr_dir.joinpath("eto-forecast.zarr")
     domain_template = "domain_{domain}.geojson"
     sample_file = source_dir.joinpath(
         "eto_forecast_gridmet_deg04_2026-08-17T00.nc")
