@@ -419,8 +419,8 @@ export class TimeSeries {
     constructor({
         container_id,
         layout,
-        legends,
         elements,
+        legends=[],
         time_template="%Y%m%d",
     }) {
         this.container = document.getElementById(container_id)
@@ -508,6 +508,7 @@ export class TimeSeries {
                     figure:this,
                     item_width:l.item_width,
                     item_height:l.item_height,
+                    ncol:l.num_columns,
                 })
             );
         }

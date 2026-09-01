@@ -132,3 +132,13 @@ svg path {
     background-color:#63c284;
     color:black;
 }
+
+#main_col_left {
+    background-color:var(--background-color);
+}
+.offcanvas-title {
+    color:var(--text-color);
+}
+.offcanvas-header button {
+    color:var(--text-color);
+}

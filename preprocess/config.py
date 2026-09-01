@@ -147,7 +147,7 @@ frontend = {
             "midwest":"Midwest"
             },
         "units":{
-            "eto":"in",
+            "eto":"inches day<sup>-1</sup>",
             "eto-anom":"dev",
             },
         },
@@ -317,7 +317,8 @@ plot_config = {
             "surround-stddev", "line-mean",
             ],
         "layout":{
-            "margin":{"top":5,"right":5,"bottom":160,"left":48},
+            "margin":{"top":5,"right":5,"bottom":120,"left":48},
+            #"margin":{"top":5,"right":5,"bottom":32,"left":48},
             "y_label":"",
             "y_range":(-0.0, 0.5), ## default if set_y_bounds not called
             "x_padding":12,
@@ -326,10 +327,11 @@ plot_config = {
         "legends":{
             "cur":{
                 "title":"Current",
-                "x_offset":0,
+                "x_offset":-40,
                 "y_offset":-70,
-                "item_height":14,
-                "item_width":240,
+                "item_height":16,
+                "item_width":150,
+                "num_columns":3,
                 },
             },
         "elements":{

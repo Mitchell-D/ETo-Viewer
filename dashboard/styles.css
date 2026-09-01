@@ -291,7 +291,7 @@ body {
 }
 
 #fig_stats_container svg {
-    min-height:480px;
+    height:384px;
 }
 
 #region_map_canvas_container canvas {
@@ -309,4 +309,17 @@ body {
     margin-top:1em;
     padding-left:1em;
     padding-right:1em;
+}
+
+svg text {
+    stroke:#c5c0be;
+    font-size:1em;
+    font-family: "Courier New", monospace;
+}
+
+/* Automatically removes the dark overlay if the screen expands to desktop */
+@media (min-width: 992px) {
+    .offcanvas-backdrop {
+        display: none !important;
+    }
 }

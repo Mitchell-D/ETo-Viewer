@@ -246,6 +246,7 @@ const plots_loaded = fetch(state.urls.plots)
             container_id:state.dom.fig_stats_container,
             layout:r["stats"]["layout"],
             legends:r["stats"]["legends"],
+            //legends:[],
             elements:r["stats"]["elements"],
             time_template:"%Y%m%d",
         });
@@ -634,7 +635,7 @@ const pgroups_active = Promise.all([map_regions_bound,menu_forms_initialized])
             MAP.set_click_scope(`pgroup-${state.sel.pgroup}`);
         }
         MAP.subscribe(click => {
-            console.log("map click:", click);
+            //console.log("map click:", click);
             let u = `/${state.sel.region}/${state.sel.feat}/`+state.sel.itime;
             let p = null;
             const lv = document.getElementById(
@@ -642,7 +643,7 @@ const pgroups_active = Promise.all([map_regions_bound,menu_forms_initialized])
             const ll = document.getElementById(
                 state.dom.fig_stats_label_location);
             lv.innerHTML = state.short_labels.feats[state.sel.feat]
-                + ` (${state.short_labels.metrics[state.sel.metric_raster]})`;
+                + ` (${state.short_labels.units[state.sel.feat]})`;
             if (click.type === "vector") {
                 u += `/${state.sel.pgroup}/${click.UID}`;
                 p = fetch(state.urls.polygon + u).then(r => r.json());
@@ -658,8 +659,8 @@ const pgroups_active = Promise.all([map_regions_bound,menu_forms_initialized])
             } else if (click.type === "pixel") {
                 u += `/${click.pxy}/${click.pxx}`;
                 p = fetch(state.urls.pixel + u).then(r => r.json());
-                const short_lat = `${click.lat}`.slice(0, 8);
-                const short_lon = `${click.lon}`.slice(0, 8);
+                const short_lat = `${click.lat}`.slice(0, 6);
+                const short_lon = `${click.lon}`.slice(0, 7);
                 ll.innerHTML = `(${short_lat}, ${short_lon})`;
             }
             Promise.all([p, plots_loaded]).then(r => {
