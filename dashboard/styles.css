@@ -1,5 +1,6 @@
 :root {
     --map-height: 640px;
+    --chiclet-color:white;
 }
 
 html {
@@ -322,4 +323,22 @@ svg text {
     .offcanvas-backdrop {
         display: none !important;
     }
+}
+
+.time-series-chiclet-container {
+    width:10%;
+    font-size.8em;
+}
+.time-series-chiclet-container p {
+    margin:0px;
+    text-align:center;
+}
+.time-series-chiclet-data {
+    color: white;
+    /* x-offset | y-offset | blur-radius | color */
+    text-shadow: 2px 2px 3px rgba(0, 0, 0, 0.9);
+    /*color:white;
+    mix-blend-mode: difference;*/
+    background-color:var(--chiclet-color);
+    /*color: contrast-color(var(--chiclet-color));*/
 }

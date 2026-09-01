@@ -10,6 +10,7 @@ import {
 } from "./map_styles.js";
 
 import { RegionMapForm } from "./RegionMapForm.js";
+import { TimeSeriesChiclets} from "./TimeSeriesChiclets.js";
 
 import { TimeSeries } from "./TimeSeries.js";
 
@@ -17,6 +18,8 @@ const state = {
     dom:{
         text_main_feat:"main_header_text",
         text_main_date:"main_date_text",
+        chiclets_container:"chiclets_container",
+        chiclets_template:"time_series_chiclet_template",
         main_map_container:"main_map_container",
         region_map_canvas_container:"region_map_canvas_container",
         region_menu_container:"dd_region_name",
@@ -124,6 +127,8 @@ const state = {
         tick_padding:2,
     },
 
+    cur_chiclet_data:{},
+
     vector_toggle_state:null,
     vectors:null,
 
@@ -140,6 +145,8 @@ const state = {
 
     // milliseconds between rendering updates to chill rapid buffering
     render_cooldown_ms:50,
+
+    dows:["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
 }
 
 // make a promise for when the DOM is loaded
@@ -164,6 +171,7 @@ let MAIN_CBAR = null;
 let RASTER_BUFFER = null;
 let BUFFER_SLIDER = null;
 let PLOT_STATS = null;
+let CHICLETS = null;
 
 function fmt_date_string(dstr) {
     const s = `${dstr.slice(0,4)}-${dstr.slice(4,6)}-${dstr.slice(6,8)}`;
@@ -510,6 +518,39 @@ const sliders_initialized = Promise.all([
             tick_padding:state.main_cbar.tick_padding,
         });
 
+        CHICLETS = new TimeSeriesChiclets({
+            container_id:state.dom.chiclets_container,
+            template_id:state.dom.chiclets_template,
+            style_fn:(el, data) => {
+                const cmname = MENU_CMAP.defaults[state.sel.feat]["mean"];
+                const cm = state.cmap.arrays[cmname].slice(0, -4);
+                const bnd = MENU_CSLIDER.bounds[state.sel.feat]["mean"];
+                const frac = (data.data-bnd[0])/(bnd[1]-bnd[0]);
+                const ix = Math.round(frac * cm.length / 4);
+                const carr = cm.slice(ix*4, (ix+1)*4);
+                const color = `rgb(${carr[0]}, ${carr[1]}, ${carr[2]})`;
+                const y = data.date.slice(0,4);
+                const m = data.date.slice(4,6);
+                const d = data.date.slice(6,8);
+                const date = new Date(Date.UTC(
+                    data.date.slice(0,4),
+                    data.date.slice(4,6)-1,
+                    data.date.slice(6,8),
+                ));
+                const dow = state.dows[date.getDay()];
+                const md = String(date.getUTCMonth()+1)
+                    + "/" + String(date.getUTCDate());
+                console.log(el);
+                el.querySelector(".time-series-chiclet-dow").textContent = dow;
+                el.querySelector(".time-series-chiclet-date").textContent = md;
+                el.querySelector(".time-series-chiclet-data")
+                    .textContent = String(data.data).slice(0, 4);
+                el.querySelector(".time-series-chiclet-data-container")
+                    .style.backgroundColor = color;
+                el.querySelector(".time-series-chiclet-data-container")
+                    .style.setProperty("--chiclet-color", color);
+            }
+        });
 
         // set subscriptions to menu (and by extension feat) changes
         MENU_METRIC.subscribe((new_metric) => {
@@ -533,6 +574,10 @@ const sliders_initialized = Promise.all([
                 nticks:state.main_cbar,
                 new_image:false,
             });
+            // refresh chiclets with new colors.
+            if (state.sel.metric_raster === "mean") {
+                CHICLETS.set_data(state.cur_chiclet_data);
+            }
         });
 
         MENU_METRIC.subscribe((new_metric) => {
@@ -553,6 +598,10 @@ const sliders_initialized = Promise.all([
                 nticks:state.main_cbar.nticks,
                 new_image:true,
             });
+            // refresh chiclets with new colors.
+            if (state.sel.metric_raster === "mean") {
+                CHICLETS.set_data(state.cur_chiclet_data);
+            }
         });
 
         MAIN_CBAR.draw({
@@ -675,6 +724,11 @@ const pgroups_active = Promise.all([map_regions_bound,menu_forms_initialized])
                     dates:state.labels.vtimes[state.sel.itime],
                     data:new_lines,
                 });
+                state.cur_chiclet_data = {
+                    date:state.labels.vtimes[state.sel.itime],
+                    data:new_lines.mean,
+                };
+                CHICLETS.set_data(state.cur_chiclet_data);
             });
 
         });
