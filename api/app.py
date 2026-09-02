@@ -32,7 +32,7 @@ DEBUG = True
 
 ## zarr store reference
 zarr.config.set({"async.concurrency": 64})
-zgrp = zarr.open("eto-forecast.zarr", mode="r")
+zgrp = zarr.open("eto-forecast-dashboard.zarr", mode="r")
 zattrs = dict(zgrp.attrs)
 
 ## determine the initialization times available for each region/feat combo

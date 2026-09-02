@@ -55,7 +55,7 @@ def get_cmaps(cmap_list, cmap_resolution, use_cmasher=False):
     return cmap_arrays,cmap_slices
 
 if __name__=="__main__":
-    out_zarr_path = Path("data/store/eto-forecast.zarr")
+    out_zarr_path = Path("data/store/eto-forecast-dashboard.zarr")
     zgrp = zarr.open(out_zarr_path, mode="a")
     vec_dir = Path("data/vector")
 

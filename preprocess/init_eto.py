@@ -286,7 +286,7 @@ if __name__=="__main__":
     source_dir = Path("data/source")
     vector_dir = Path("data/vector")
 
-    out_zarr_path = out_zarr_dir.joinpath("eto-forecast.zarr")
+    out_zarr_path = out_zarr_dir.joinpath("eto-forecast-dashboard.zarr")
     domain_template = "domain_{domain}.geojson"
     sample_file = source_dir.joinpath(
         "eto_forecast_gridmet_deg04_2026-08-17T00.nc")
